@@ -22,18 +22,18 @@ async function query(text, params) {
     return await pool.query(text, params);
 }
 
-// 🔥 重置資料庫 (更新了 activities 表結構，支援 type)
+// 🔥 重置資料庫
 app.get('/reset-db', async (req, res) => {
     try {
         await query("DROP TABLE IF EXISTS transactions");
         await query("DROP TABLE IF EXISTS users");
-        await query("DROP TABLE IF EXISTS activities"); // Cascade delete setting might vary, drop order matters
+        await query("DROP TABLE IF EXISTS activities");
 
-        // 1. 活動表 (新增 type 欄位)
+        // 1. 活動表
         await query(`CREATE TABLE activities (
             id SERIAL PRIMARY KEY, 
             name TEXT NOT NULL,
-            type TEXT DEFAULT 'bowling', -- 'bowling' or 'split'
+            type TEXT DEFAULT 'bowling',
             cost_per_game NUMERIC DEFAULT 0,
             alert_threshold NUMERIC DEFAULT 200,
             created_at TIMESTAMP DEFAULT NOW()
@@ -58,7 +58,7 @@ app.get('/reset-db', async (req, res) => {
             date TIMESTAMP
         )`);
 
-        res.send("Database has been reset with 'Type' support. <a href='/'>Go Home</a>");
+        res.send("Database has been reset. <a href='/'>Go Home</a>");
     } catch (err) {
         console.error(err);
         res.status(500).send("Error resetting DB: " + err.message);
@@ -76,7 +76,7 @@ app.get('/', async (req, res) => {
     }
 });
 
-// 2. 創建新活動 (支援 type)
+// 2. 創建新活動
 app.post('/create-activity', async (req, res) => {
     const { name, cost, type } = req.body;
     const activityType = type || 'bowling';
@@ -111,7 +111,7 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 4. 記數邏輯 (核心修改：分開保齡與夾錢模式)
+// 4. 記數邏輯
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
     const { games, selectedUsers, totalCost } = req.body; 
@@ -120,7 +120,7 @@ app.post('/activity/:id/record', async (req, res) => {
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
         const activity = actRes.rows[0];
 
-        // --- 模式 A: 保齡球 (計局數) ---
+        // --- 模式 A: 保齡球 ---
         if (activity.type === 'bowling') {
             if (!games) return res.redirect(`/activity/${activityId}`);
             const costPerGame = parseFloat(activity.cost_per_game);
@@ -137,10 +137,9 @@ app.post('/activity/:id/record', async (req, res) => {
                 }
             }
         } 
-        // --- 模式 B: Pickleball / 夾錢 (AA制) ---
+        // --- 模式 B: Pickleball / 夾錢 ---
         else {
             let users = [];
-            // 處理 checkbox: 如果只揀一個，佢係 string；如果揀多個，佢係 array
             if (Array.isArray(selectedUsers)) users = selectedUsers;
             else if (selectedUsers) users = [selectedUsers];
 
@@ -240,31 +239,48 @@ app.get('/activity/:id/users', async (req, res) => {
     }
 });
 
-// 10. 修改 Transaction (只支援 Expense 修正金額，Pickleball 模式建議刪除重開)
+// 10. 🔥 修改 Transaction (支援局數 或 直接金額)
 app.post('/activity/:id/update-transaction', async (req, res) => {
     const activityId = req.params.id;
-    const { id, newGameCount } = req.body; // 注意：這裡仍然假設是改局數，Pickleball 模式下建議直接刪除
-    const games = parseInt(newGameCount);
+    const { id, newGameCount, newAmount } = req.body;
 
     try {
         const oldTransRes = await query("SELECT * FROM transactions WHERE id = $1", [id]);
         const oldTrans = oldTransRes.rows[0];
-        
-        // 簡單起見，如果係 pickleball 相關嘅數，暫時當局數處理會錯，所以建議 History page 限制
-        if (!oldTrans || oldTrans.type !== 'expense') return res.redirect(`/activity/${activityId}/history`);
+        if (!oldTrans) return res.redirect(`/activity/${activityId}/history`);
 
-        const actRes = await query("SELECT cost_per_game FROM activities WHERE id = $1", [activityId]);
-        // 若 cost_per_game 為 0 (Pickleball)，這裡修改金額會有問題，所以介面最好引導刪除
-        const costPerGame = parseFloat(actRes.rows[0].cost_per_game);
-        
-        if (costPerGame > 0) {
-             const newAmount = -(games * costPerGame); 
-             const newDesc = `打波 ${games} 局`;
-             const diff = newAmount - parseFloat(oldTrans.amount);
+        // 1. 先還原舊數
+        await query("UPDATE users SET balance = balance - $1 WHERE id = $2", 
+            [parseFloat(oldTrans.amount), oldTrans.user_id]);
 
-             await query("UPDATE users SET balance = balance + $1 WHERE id = $2", [diff, oldTrans.user_id]);
-             await query("UPDATE transactions SET amount = $1, description = $2 WHERE id = $3", [newAmount, newDesc, id]);
+        let finalAmount = 0;
+        let finalDesc = oldTrans.description;
+
+        // 情況 A: 修改保齡球局數
+        if (newGameCount) {
+            const games = parseInt(newGameCount);
+            const actRes = await query("SELECT cost_per_game FROM activities WHERE id = $1", [activityId]);
+            const costPerGame = parseFloat(actRes.rows[0].cost_per_game);
+            finalAmount = -(games * costPerGame);
+            finalDesc = `打波 ${games} 局`;
+        } 
+        // 情況 B: 直接修改金額 (入錢 或 Pickleball)
+        else if (newAmount) {
+            const val = parseFloat(newAmount);
+            if (oldTrans.type === 'deposit') {
+                finalAmount = Math.abs(val); // 入錢一定是正數
+            } else {
+                finalAmount = -Math.abs(val); // 扣數一定是負數
+            }
+            // Description 唔改，照舊
         }
+
+        // 2. 更新 Transaction 同 User Balance
+        await query("UPDATE transactions SET amount = $1, description = $2 WHERE id = $3", 
+            [finalAmount, finalDesc, id]);
+        
+        await query("UPDATE users SET balance = balance + $1 WHERE id = $2", 
+            [finalAmount, oldTrans.user_id]);
         
         res.redirect(`/activity/${activityId}/history`);
     } catch (err) {
@@ -273,7 +289,7 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
     }
 });
 
-// 11. 刪除 Transaction
+// 11. 🔥 刪除 Transaction (通用)
 app.post('/activity/:id/delete-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id } = req.body;
@@ -281,7 +297,8 @@ app.post('/activity/:id/delete-transaction', async (req, res) => {
         const transRes = await query("SELECT * FROM transactions WHERE id = $1", [id]);
         const trans = transRes.rows[0];
         if (trans) {
-            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(trans.amount), trans.user_id]);
+            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", 
+                [parseFloat(trans.amount), trans.user_id]);
             await query("DELETE FROM transactions WHERE id = $1", [id]);
         }
         res.redirect(`/activity/${activityId}/history`);
