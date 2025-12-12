@@ -14,6 +14,10 @@
         .amount-neg { color: red; font-weight: bold; }
         .table-text-small { font-size: 0.9rem; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
+        
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #388697; color: white;
+        }
 
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
@@ -23,20 +27,16 @@
 
 <nav class="navbar navbar-dark bg-primary mb-3">
     <div class="container-fluid position-relative">
-        
         <div class="d-flex align-items-center">
             <a class="navbar-brand p-0 m-0" href="/activity/<%= activity.id %>">
                 <span class="fs-4">⬅️</span>
             </a>
         </div>
-
         <div class="position-absolute top-50 start-50 translate-middle w-50 text-center">
             <div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div>
         </div>
-
         <div class="d-flex align-items-center gap-2">
             <button class="btn btn-sm btn-outline-light border-0" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
-            
             <div class="dropdown">
                 <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
@@ -88,7 +88,8 @@
                                         data-id="<%= t.id %>" 
                                         data-desc="<%= t.description %>" 
                                         data-amount="<%= Math.abs(t.amount) %>"
-                                        data-type="<%= t.type %>">
+                                        data-type="<%= t.type %>"
+                                        data-act-id="<%= activity.id %>">
                                         ✏️
                                     </button>
                                     <button class="btn btn-sm btn-outline-danger py-0 px-1 btn-delete" 
@@ -115,7 +116,7 @@
                     <div class="modal-body">
                         <input type="hidden" name="id" id="deleteTransId">
                         <p data-i18n="confirm_del_record">確定要刪除這條紀錄嗎？</p>
-                        <p class="text-danger small" data-i18n="hint_del_restore">刪除後，該用戶的餘額會自動還原。</p>
+                        <p class="text-danger small" data-i18n="hint_del_restore">刪除後，該用戶的餘額會自動還原。<br>(若是夾錢紀錄，剩餘者將會重新計算)</p>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button>
@@ -150,6 +151,26 @@
                             <input type="number" step="0.1" name="newAmount" id="inputAmount" class="form-control" placeholder="100">
                         </div>
 
+                        <div id="editParticipantsSection" class="d-none mt-3">
+                            <label class="form-label fw-bold" data-i18n="label_participants">修改參與者 (重新計算人頭費)</label>
+                            <div class="card card-body bg-light p-2" style="max-height: 200px; overflow-y: auto;">
+                                <div class="row g-2">
+                                    <% users.forEach(user => { %>
+                                        <div class="col-6">
+                                            <input type="checkbox" class="btn-check group-checkbox" 
+                                                   name="selectedUsers" value="<%= user.id %>" id="chk-<%= user.id %>">
+                                            <label class="btn btn-outline-primary btn-sm w-100" for="chk-<%= user.id %>">
+                                                <%= user.name %>
+                                            </label>
+                                        </div>
+                                    <% }) %>
+                                </div>
+                            </div>
+                            <div class="small text-muted mt-1" data-i18n="hint_recalc">
+                                系統會刪除舊有紀錄，並根據新選擇的人數重新平均分配。
+                            </div>
+                        </div>
+
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button>
@@ -166,8 +187,7 @@
 <script>
     const translations = {
         zh: {
-            menu_return: "返回記數",
-            menu_members: "會員管理",
+            nav_back: "返回記數",
             title_suffix: "紀錄",
             no_records: "暫時未有任何交易紀錄。",
             th_time_user: "時間/人物",
@@ -177,18 +197,21 @@
             badge_deposit: "入數",
             modal_del_title: "刪除紀錄",
             confirm_del_record: "確定要刪除這條紀錄嗎？",
-            hint_del_restore: "刪除後，該用戶的餘額會自動還原。",
+            hint_del_restore: "刪除後，該用戶的餘額會自動還原。<br>(若是夾錢紀錄，剩餘者將會重新計算)",
             btn_cancel: "取消",
             btn_confirm_delete: "確認刪除",
             modal_edit_title: "修改紀錄",
             label_original: "原本內容",
             label_new_games: "修正為多少局？",
             label_new_amount: "修正金額 ($)",
-            btn_save_changes: "保存修改"
+            label_participants: "修改參與者 (重新計算)",
+            hint_recalc: "系統會根據新選擇的人數及金額重新分配。",
+            btn_save_changes: "保存修改",
+            menu_return: "返回記數",
+            menu_members: "會員管理"
         },
         en: {
-            menu_return: "Back to Record",
-            menu_members: "Members",
+            nav_back: "Back",
             title_suffix: "History",
             no_records: "No transaction records yet.",
             th_time_user: "Time/User",
@@ -198,14 +221,18 @@
             badge_deposit: "Deposit",
             modal_del_title: "Delete Record",
             confirm_del_record: "Are you sure you want to delete this record?",
-            hint_del_restore: "Balance will be restored after deletion.",
+            hint_del_restore: "Balance will be restored. (Split bills will be recalculated)",
             btn_cancel: "Cancel",
             btn_confirm_delete: "Delete",
             modal_edit_title: "Edit Record",
             label_original: "Original",
             label_new_games: "New Game Count",
             label_new_amount: "New Amount ($)",
-            btn_save_changes: "Save Changes"
+            label_participants: "Edit Participants (Recalculate)",
+            hint_recalc: "System will redistribute cost based on new selection.",
+            btn_save_changes: "Save Changes",
+            menu_return: "Back to Record",
+            menu_members: "Members"
         }
     };
 
@@ -215,7 +242,7 @@
         const langData = translations[currentLang];
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            if (langData[key]) el.innerText = langData[key];
+            if (langData[key]) el.innerHTML = langData[key];
         });
         document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
     }
@@ -237,34 +264,61 @@
     });
 
     const editModal = new bootstrap.Modal(document.getElementById('editModal'));
+    
     document.querySelectorAll('.btn-edit').forEach(btn => {
         btn.addEventListener('click', function() {
             const id = this.dataset.id;
             const desc = this.dataset.desc;
             const amount = this.dataset.amount;
             const type = this.dataset.type;
+            const actId = this.dataset.actId;
 
             document.getElementById('editTransId').value = id;
             document.getElementById('editTransDesc').innerText = desc;
 
             const gameSection = document.getElementById('editGameSection');
             const amountSection = document.getElementById('editAmountSection');
+            const participantsSection = document.getElementById('editParticipantsSection');
             const gameInput = document.getElementById('inputGameCount');
             const amountInput = document.getElementById('inputAmount');
 
+            // Reset UI
             gameInput.value = '';
             amountInput.value = '';
+            gameSection.classList.add('d-none');
+            amountSection.classList.add('d-none');
+            participantsSection.classList.add('d-none');
+            
+            // Uncheck all boxes
+            document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = false);
 
             if (type === 'expense' && desc.includes('局')) {
                 gameSection.classList.remove('d-none');
-                amountSection.classList.add('d-none');
                 const match = desc.match(/(\d+)/);
                 if(match) gameInput.value = match[0];
-            } else {
-                gameSection.classList.add('d-none');
+            } 
+            else if (type === 'expense' && desc.includes('共$')) {
+                amountSection.classList.remove('d-none');
+                participantsSection.classList.remove('d-none'); 
+                
+                const match = desc.match(/共\$(\d+(\.\d+)?)/);
+                if(match) amountInput.value = match[1];
+
+                // 🔥 AJAX Fetch Participants
+                fetch(`/activity/${actId}/transaction/${id}/group`)
+                    .then(res => res.json())
+                    .then(userIds => {
+                        userIds.forEach(uid => {
+                            const cb = document.getElementById('chk-' + uid);
+                            if(cb) cb.checked = true;
+                        });
+                    });
+            }
+            else {
                 amountSection.classList.remove('d-none');
                 amountInput.value = amount;
             }
+
             editModal.show();
         });
     });
