@@ -423,7 +423,7 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
     }
 });
 
-// 14. Delete Transaction (🔥 UPDATE: 軟刪除 - 保留紀錄但金額歸零)
+// 14. Delete Transaction (🔥 FIX: 刪除後，根據剩餘者的訪客數量正確重算)
 app.post('/activity/:id/delete-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id } = req.body;
@@ -432,47 +432,66 @@ app.post('/activity/:id/delete-transaction', async (req, res) => {
         const targetTrans = transRes.rows[0];
 
         if (targetTrans) {
-            // 1. 先還原該用戶的餘額 (退錢)
+            // 1. 退錢俾被刪除者
             await query("UPDATE users SET balance = balance - $1 WHERE id = $2", 
                 [parseFloat(targetTrans.amount), targetTrans.user_id]);
 
-            // 2. 處理 Pickleball 連帶重算
+            // 2. 標記為 Void (軟刪除)
+            const newDesc = `[已刪除] ${targetTrans.description}`;
+            await query("UPDATE transactions SET type = 'void', amount = 0, description = $1 WHERE id = $2", 
+                [newDesc, id]);
+
+            // 3. 檢查係咪 Pickleball 夾錢單 (有 "共$XXX")
             const match = targetTrans.description.match(/共\$(\d+(\.\d+)?)/);
             if (match) {
-                const totalCost = parseFloat(match[1]);
-                const recordDate = new Date(targetTrans.date).toISOString(); 
-
-                // 找出同組的其他交易 (排除自己，也排除已經 Void 咗嘅紀錄)
+                const totalCost = parseFloat(match[1]); // 總場租不變
+                
+                // 🔥 搵出同組還有誰是 "Active" (未刪除) 的
+                // 注意：這裡用 Date 來鎖定同一組交易
                 const siblingsRes = await query(`
                     SELECT * FROM transactions 
                     WHERE activity_id = $1 
-                    AND description = $2 
-                    AND date = $3 
-                    AND id != $4
-                    AND type != 'void'`, 
-                    [activityId, targetTrans.description, recordDate, id]
+                    AND date = $2 
+                    AND id != $3
+                    AND type != 'void'`, // 排除已經 void 咗嘅
+                    [activityId, targetTrans.date, id]
                 );
                 const siblings = siblingsRes.rows;
 
                 if (siblings.length > 0) {
-                    const newCount = siblings.length; // 剩下的人數
-                    // (注意：因為被刪除者退出了，所以總金額由剩下的人平分)
-                    const newPerHeadCost = totalCost / newCount;
-                    const newAmount = -newPerHeadCost;
+                    // 4. 🔥 重新計算剩餘的總人頭 (自己 + 訪客)
+                    let totalHeads = 0;
+                    let siblingHeadsMap = {};
 
-                    for (const sibling of siblings) {
-                        const oldAmount = parseFloat(sibling.amount);
-                        await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [oldAmount, sibling.user_id]);
-                        await query("UPDATE users SET balance = balance + $1 WHERE id = $2", [newAmount, sibling.user_id]);
-                        await query("UPDATE transactions SET amount = $1 WHERE id = $2", [newAmount, sibling.id]);
+                    siblings.forEach(sib => {
+                        // 從描述中讀取訪客數 "[2訪客]"
+                        const guestMatch = sib.description.match(/\[(\d+)訪客\]/);
+                        const guests = guestMatch ? parseInt(guestMatch[1]) : 0;
+                        
+                        const myTotal = 1 + guests; // 自己 + 訪客
+                        siblingHeadsMap[sib.id] = myTotal;
+                        totalHeads += myTotal;
+                    });
+
+                    // 5. 執行更新
+                    if (totalHeads > 0) {
+                        const newPerHeadCost = totalCost / totalHeads; // 新單價
+
+                        for (const sibling of siblings) {
+                            const myHeads = siblingHeadsMap[sibling.id];
+                            const newAmount = -(newPerHeadCost * myHeads); // 負數支出
+                            const oldAmount = parseFloat(sibling.amount);
+                            const diff = newAmount - oldAmount;
+
+                            // 更新交易金額
+                            await query("UPDATE transactions SET amount = $1 WHERE id = $2", [newAmount, sibling.id]);
+                            
+                            // 更新用戶餘額 (直接加差價)
+                            await query("UPDATE users SET balance = balance + $1 WHERE id = $2", [diff, sibling.user_id]);
+                        }
                     }
                 }
             }
-
-            // 3. 🔥 關鍵修改：不刪除紀錄，而是標記為「已刪除」並歸零
-            const newDesc = `[已刪除] ${targetTrans.description}`;
-            await query("UPDATE transactions SET type = 'void', amount = 0, description = $1 WHERE id = $2", 
-                [newDesc, id]);
         }
         res.redirect(`/activity/${activityId}/history`);
     } catch (err) {
