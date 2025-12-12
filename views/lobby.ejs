@@ -35,35 +35,42 @@
 
     <hr class="my-5">
 
-    <div class="card mx-auto" style="max-width: 500px;">
-        <div class="card-body">
-            <h5 class="card-title text-center">➕ 建立新活動</h5>
-            <form action="/create-activity" method="POST">
-                <div class="mb-3">
-                    <label class="form-label">活動名稱</label>
-                    <input type="text" name="name" class="form-control" placeholder="例如: 星期五保齡 / Pickleball" required>
-                </div>
-                
-                <div class="mb-3">
-                    <label class="form-label">計費模式</label>
-                    <select name="type" class="form-select">
-                        <option value="bowling">保齡球 (按局數計 x 單價)</option>
-                        <option value="split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
-                    </select>
-                </div>
+    <div class="text-center mb-3">
+        <button class="btn btn-lg btn-outline-success" type="button" data-bs-toggle="collapse" data-bs-target="#createActivityBox">
+            ➕ 建立新活動
+        </button>
+    </div>
 
-                <div class="mb-3">
-                    <label class="form-label">預設每局金額 (只適用於保齡)</label>
-                    <input type="number" step="0.1" name="cost" class="form-control" placeholder="5.6">
-                </div>
-                <button class="btn btn-success w-100">建立</button>
-            </form>
+    <div class="collapse" id="createActivityBox">
+        <div class="card mx-auto" style="max-width: 500px;">
+            <div class="card-body">
+                <h5 class="card-title text-center">新活動資料</h5>
+                <form action="/create-activity" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label">活動名稱</label>
+                        <input type="text" name="name" class="form-control" placeholder="例如: 星期五保齡 / Pickleball" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">計費模式</label>
+                        <select name="type" class="form-select">
+                            <option value="split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
+                            <option value="bowling">保齡球 (按局數計 x 單價)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">預設每局金額 (只適用於保齡)</label>
+                        <input type="number" step="0.1" name="cost" class="form-control" placeholder="5.6">
+                    </div>
+                    <button class="btn btn-success w-100">立即建立</button>
+                </form>
+            </div>
         </div>
     </div>
     
-    <div class="text-center mt-4">
-        <small><a href="/reset-db" class="text-danger" onclick="return confirm('確定重置所有資料？所有舊紀錄將會消失！')">重置資料庫 (Danger Zone)</a></small>
     </div>
-</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>
