@@ -18,6 +18,12 @@
         .btn-check:checked + .btn-outline-primary {
             background-color: #388697; color: white;
         }
+        
+        /* 訪客按鈕樣式 (同 Index 一樣) */
+        .guest-btn { 
+            width: 25px; height: 25px; padding: 0; line-height: 23px; 
+            border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold;
+        }
 
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
@@ -152,32 +158,29 @@
                         </div>
 
                         <div id="editParticipantsSection" class="d-none mt-3">
-                            
-                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-white border rounded">
-                                <span class="fw-bold">👥 <span data-i18n="label_guests">訪客/Guest</span></span>
-                                <div class="input-group" style="width: 120px;">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeEditGuest(-1)">-</button>
-                                    <input type="text" name="guestCount" id="editGuestInput" class="form-control text-center fw-bold" value="0" readonly>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeEditGuest(1)">+</button>
-                                </div>
-                            </div>
-
                             <label class="form-label fw-bold" data-i18n="label_participants">修改參與者</label>
-                            <div class="card card-body bg-light p-2" style="max-height: 200px; overflow-y: auto;">
+                            <div class="card card-body bg-light p-2" style="max-height: 250px; overflow-y: auto;">
                                 <div class="row g-2">
                                     <% users.forEach(user => { %>
                                         <div class="col-6">
                                             <input type="checkbox" class="btn-check group-checkbox" 
                                                    name="selectedUsers" value="<%= user.id %>" id="chk-<%= user.id %>">
-                                            <label class="btn btn-outline-primary btn-sm w-100" for="chk-<%= user.id %>">
-                                                <%= user.name %>
+                                            
+                                            <label class="btn btn-outline-primary btn-sm w-100 p-2" for="chk-<%= user.id %>">
+                                                <div class="fw-bold"><%= user.name %></div>
+                                                <div class="d-flex justify-content-center align-items-center gap-1 mt-1" onclick="event.preventDefault()">
+                                                    <button type="button" class="guest-btn" onclick="changeEditUserGuest('<%= user.id %>', -1)">-</button>
+                                                    <span class="small text-muted fw-bold">👤+<span id="guest-display-<%= user.id %>">0</span></span>
+                                                    <button type="button" class="guest-btn" onclick="changeEditUserGuest('<%= user.id %>', 1)">+</button>
+                                                    <input type="hidden" name="guests[uid_<%= user.id %>]" id="guest-input-<%= user.id %>" value="0">
+                                                </div>
                                             </label>
                                         </div>
                                     <% }) %>
                                 </div>
                             </div>
                             <div class="small text-muted mt-1" data-i18n="hint_recalc">
-                                系統會刪除舊有紀錄，並根據新選擇的人數重新平均分配。
+                                系統會刪除舊有紀錄，並根據新選擇的人數及權重重新分配。
                             </div>
                         </div>
 
@@ -214,12 +217,11 @@
             label_original: "原本內容",
             label_new_games: "修正為多少局？",
             label_new_amount: "修正金額 ($)",
-            label_participants: "修改參與者 (重新計算)",
-            hint_recalc: "系統會根據新選擇的人數及金額重新分配。",
+            label_participants: "修改參與者 (加權計算)",
+            hint_recalc: "系統會根據新選擇的人數及 Guest 重新分配。",
             btn_save_changes: "保存修改",
             menu_return: "返回記數",
-            menu_members: "會員管理",
-            label_guests: "訪客/Guest"
+            menu_members: "會員管理"
         },
         en: {
             nav_back: "Back",
@@ -239,12 +241,11 @@
             label_original: "Original",
             label_new_games: "New Game Count",
             label_new_amount: "New Amount ($)",
-            label_participants: "Edit Participants (Recalculate)",
-            hint_recalc: "System will redistribute cost based on new selection.",
+            label_participants: "Edit Participants (Weighted)",
+            hint_recalc: "System will redistribute cost based on selection and guests.",
             btn_save_changes: "Save Changes",
             menu_return: "Back to Record",
-            menu_members: "Members",
-            label_guests: "Guests"
+            menu_members: "Members"
         }
     };
 
@@ -267,13 +268,22 @@
 
     applyLanguage();
 
-    // 🔥 Guest Change Logic
-    function changeEditGuest(delta) {
-        const input = document.getElementById('editGuestInput');
+    // 🔥 Edit Modal Guest Logic
+    function changeEditUserGuest(userId, delta) {
+        const input = document.getElementById('guest-input-' + userId);
+        const display = document.getElementById('guest-display-' + userId);
+        const checkbox = document.getElementById('chk-' + userId);
+
         let val = parseInt(input.value) || 0;
         val += delta;
         if (val < 0) val = 0;
+        
         input.value = val;
+        display.innerText = val;
+
+        if (val > 0 && !checkbox.checked) {
+            checkbox.checked = true;
+        }
     }
 
     const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
@@ -302,17 +312,18 @@
             const participantsSection = document.getElementById('editParticipantsSection');
             const gameInput = document.getElementById('inputGameCount');
             const amountInput = document.getElementById('inputAmount');
-            const guestInput = document.getElementById('editGuestInput');
 
             // Reset UI
             gameInput.value = '';
             amountInput.value = '';
-            guestInput.value = '0'; // Reset guests
             gameSection.classList.add('d-none');
             amountSection.classList.add('d-none');
             participantsSection.classList.add('d-none');
             
+            // Reset checkboxes and guests
             document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = false);
+            document.querySelectorAll('[id^="guest-input-"]').forEach(el => el.value = 0);
+            document.querySelectorAll('[id^="guest-display-"]').forEach(el => el.innerText = 0);
 
             if (type === 'expense' && desc.includes('局')) {
                 gameSection.classList.remove('d-none');
@@ -326,18 +337,19 @@
                 const match = desc.match(/共\$(\d+(\.\d+)?)/);
                 if(match) amountInput.value = match[1];
 
-                // 🔥 讀取描述中的訪客數量 (例如: [2訪客])
-                const guestMatch = desc.match(/\[(\d+)訪客\]/);
-                if (guestMatch) {
-                    guestInput.value = guestMatch[1];
-                }
-
+                // 🔥 AJAX: Get participants AND their guests
                 fetch(`/activity/${actId}/transaction/${id}/group`)
                     .then(res => res.json())
-                    .then(userIds => {
-                        userIds.forEach(uid => {
-                            const cb = document.getElementById('chk-' + uid);
+                    .then(users => {
+                        users.forEach(u => {
+                            const cb = document.getElementById('chk-' + u.user_id);
                             if(cb) cb.checked = true;
+                            
+                            // Fill in Guest Count
+                            if (u.guests > 0) {
+                                document.getElementById('guest-input-' + u.user_id).value = u.guests;
+                                document.getElementById('guest-display-' + u.user_id).innerText = u.guests;
+                            }
                         });
                     });
             }
