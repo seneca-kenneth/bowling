@@ -1,31 +1,36 @@
 const express = require('express');
 const { Pool } = require('pg');
 const bodyParser = require('body-parser');
+const path = require('path'); // 引入 path 模組 (修復 Vercel 路徑問題)
 const app = express();
 
+// 連接 Vercel Postgres
 const pool = new Pool({
     connectionString: process.env.POSTGRES_URL,
     ssl: { rejectUnauthorized: false }
 });
 
+// 🔥 關鍵修復：明確告訴 Express views 資料夾在哪裡 🔥
+app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static('public'));
 
-// 輔助函數
+app.use(bodyParser.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public'))); // 同樣修復 public 資料夾路徑
+
+// 輔助函數：執行 SQL Query
 async function query(text, params) {
     return await pool.query(text, params);
 }
 
-// 🔥 重置資料庫路由 (因為結構大改，第一次建議跑一次)
+// 🔥 重置資料庫路由 (初始化 Table 結構)
 app.get('/reset-db', async (req, res) => {
     try {
         await query("DROP TABLE IF EXISTS transactions");
         await query("DROP TABLE IF EXISTS users");
-        await query("DROP TABLE IF EXISTS settings"); // 舊表，不再需要
+        await query("DROP TABLE IF EXISTS settings"); 
         await query("DROP TABLE IF EXISTS activities");
 
-        // 1. 活動表 (包含該活動的設定)
+        // 1. 活動表
         await query(`CREATE TABLE activities (
             id SERIAL PRIMARY KEY, 
             name TEXT NOT NULL,
@@ -34,7 +39,7 @@ app.get('/reset-db', async (req, res) => {
             created_at TIMESTAMP DEFAULT NOW()
         )`);
 
-        // 2. 用戶表 (屬於某個活動)
+        // 2. 用戶表 (關聯活動)
         await query(`CREATE TABLE users (
             id SERIAL PRIMARY KEY, 
             activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
@@ -42,7 +47,7 @@ app.get('/reset-db', async (req, res) => {
             balance NUMERIC DEFAULT 0
         )`);
 
-        // 3. 交易表 (屬於某個活動)
+        // 3. 交易表 (關聯活動)
         await query(`CREATE TABLE transactions (
             id SERIAL PRIMARY KEY, 
             activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
@@ -66,7 +71,7 @@ app.get('/', async (req, res) => {
         const result = await query("SELECT * FROM activities ORDER BY created_at DESC");
         res.render('lobby', { activities: result.rows });
     } catch (err) {
-        // 如果表不存在，提示去 reset
+        // 如果表不存在 (例如第一次用)，提示去 reset
         if (err.code === '42P01') return res.redirect('/reset-db');
         res.status(500).send("DB Error: " + err.message);
     }
@@ -85,7 +90,6 @@ app.post('/create-activity', async (req, res) => {
 app.get('/activity/:id', async (req, res) => {
     const activityId = req.params.id;
     try {
-        // 攞活動資料
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
         const activity = actRes.rows[0];
         if (!activity) return res.redirect('/');
@@ -94,7 +98,6 @@ app.get('/activity/:id', async (req, res) => {
         const alertThreshold = parseFloat(activity.alert_threshold);
         const keepOpen = req.query.open === 'true';
 
-        // 攞該活動的 Users
         const usersRes = await query("SELECT * FROM users WHERE activity_id = $1 ORDER BY name ASC", [activityId]);
         const users = usersRes.rows.map(u => ({...u, balance: parseFloat(u.balance)}));
         
@@ -115,7 +118,6 @@ app.post('/activity/:id/record', async (req, res) => {
     if (!games) return res.redirect(`/activity/${activityId}`);
 
     try {
-        // 讀取該活動的價錢設定
         const actRes = await query("SELECT cost_per_game FROM activities WHERE id = $1", [activityId]);
         const costPerGame = parseFloat(actRes.rows[0].cost_per_game);
 
@@ -215,9 +217,7 @@ app.get('/activity/:id/users', async (req, res) => {
     }
 });
 
-// 10. 修改/刪除功能 (需配合 activity_id)
-// ... 簡化起見，Edit/Delete 邏輯與之前相似，這裡省略部分重複，但在 redirect 時要帶回 activity ID
-// 修改 Transaction
+// 10. 修改 Transaction
 app.post('/activity/:id/update-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id, newGameCount } = req.body;
@@ -245,7 +245,7 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
     }
 });
 
-// 刪除 Transaction
+// 11. 刪除 Transaction
 app.post('/activity/:id/delete-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id } = req.body;
@@ -262,15 +262,20 @@ app.post('/activity/:id/delete-transaction', async (req, res) => {
     }
 });
 
-// 修改/刪除 User 
+// 12. 修改 User
 app.post('/activity/:id/edit-user', async (req, res) => {
     await query("UPDATE users SET name = $1 WHERE id = $2", [req.body.name, req.body.id]);
     res.redirect(`/activity/${req.params.id}/users`);
 });
 
+// 13. 刪除 User
 app.post('/activity/:id/delete-user', async (req, res) => {
     await query("DELETE FROM users WHERE id = $1", [req.body.id]);
     res.redirect(`/activity/${req.params.id}/users`);
 });
+
+// 本地測試用 (Vercel 不需要 listen，但保留也無妨)
+const PORT = process.env.PORT || 3000;
+app.listen(PORT, () => console.log(`App running on port ${PORT}`));
 
 module.exports = app;
