@@ -13,6 +13,10 @@
         .amount-pos { color: green; font-weight: bold; }
         .amount-neg { color: red; font-weight: bold; }
         .table-text-small { font-size: 0.9rem; }
+        .dropdown-item { padding: 10px 15px; font-size: 1rem; }
+
+        ::-webkit-scrollbar { display: none; }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-light">
@@ -30,8 +34,16 @@
             <div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div>
         </div>
 
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-2">
             <button class="btn btn-sm btn-outline-light border-0" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
+            
+            <div class="dropdown">
+                <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
+                    <li><a class="dropdown-item" href="/activity/<%= activity.id %>">🏠 <span data-i18n="menu_return">返回記數</span></a></li>
+                    <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 <span data-i18n="menu_members">會員管理</span></a></li>
+                </ul>
+            </div>
         </div>
     </div>
 </nav>
@@ -154,6 +166,8 @@
 <script>
     const translations = {
         zh: {
+            menu_return: "返回記數",
+            menu_members: "會員管理",
             title_suffix: "紀錄",
             no_records: "暫時未有任何交易紀錄。",
             th_time_user: "時間/人物",
@@ -173,6 +187,8 @@
             btn_save_changes: "保存修改"
         },
         en: {
+            menu_return: "Back to Record",
+            menu_members: "Members",
             title_suffix: "History",
             no_records: "No transaction records yet.",
             th_time_user: "Time/User",
