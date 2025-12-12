@@ -64,7 +64,7 @@
                 <h5 class="modal-title">✏️ 修改會員資料</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="/edit-user" method="POST">
+            <form action="/activity/<%= activity.id %>/edit-user" method="POST">
                 <div class="modal-body">
                     <input type="hidden" name="id" id="editUserId">
                     <div class="mb-3">
@@ -88,7 +88,7 @@
                 <h5 class="modal-title text-danger">⚠️ 刪除會員</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
-            <form action="/delete-user" method="POST">
+            <form action="/activity/<%= activity.id %>/delete-user" method="POST">
                 <div class="modal-body">
                     <input type="hidden" name="id" id="deleteUserId">
                     <p>確定要刪除會員 <strong><span id="deleteUserName"></span></strong> 嗎？</p>
