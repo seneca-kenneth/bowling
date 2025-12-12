@@ -239,7 +239,7 @@ app.get('/activity/:id/users', async (req, res) => {
     }
 });
 
-// 10. 🔥 修改 Transaction (支援局數 或 直接金額)
+// 10. 修改 Transaction (支援局數 或 直接金額)
 app.post('/activity/:id/update-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id, newGameCount, newAmount } = req.body;
@@ -289,7 +289,7 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
     }
 });
 
-// 11. 🔥 刪除 Transaction (通用)
+// 11. 刪除 Transaction (通用)
 app.post('/activity/:id/delete-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id } = req.body;
