@@ -14,9 +14,23 @@
         .btn-outline-primary { color: #388697; border-color: #388697; }
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
+        
+        /* Pickleball Card Styles */
         .option-card { background-color: white; border: 1px solid #388697; transition: all 0.2s; }
-        .btn-check:checked + .option-card { background-color: #388697; color: white !important; }
-        .btn-check:checked + .option-card .small { color: white !important; }
+        
+        /* 當選取時，只將名變白色，餘額保持原色 */
+        .btn-check:checked + .option-card { background-color: #388697; }
+        .btn-check:checked + .option-card .user-name { color: white !important; }
+        
+        /* 餘額盒仔樣式 */
+        .balance-box {
+            background-color: #e9ecef; /* 淺灰色底 */
+            border-radius: 8px;
+            padding: 2px 8px;
+            width: 100%;
+            text-align: center;
+        }
+
         body { padding-bottom: 80px; background-color: #f8f9fa; margin: 0; padding-top: 0; }
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; }
         .user-card { transition: all 0.2s; border: 1px solid #eee; }
@@ -26,7 +40,6 @@
         .pos-bal { color: #198754; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
 
-        /* 隱藏 Scrollbar */
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -75,7 +88,6 @@
                 </div>
 
                 <div class="row g-2 align-items-center">
-                    
                     <% if (!activity.type || activity.type === 'bowling') { %>
                         <div class="col-6">
                             <label class="small text-muted" data-i18n="label_cost">每局金額</label>
@@ -92,7 +104,6 @@
                             <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
                         </div>
                     <% } %>
-
                     <div class="col-12 text-end mt-2">
                         <button class="btn btn-sm btn-secondary w-100" data-i18n="btn_save_settings">保存設定</button>
                     </div>
@@ -166,13 +177,16 @@
 
             <div class="row g-2">
                 <% users.forEach(user => { %>
-                    <div class="col-4">
+                    <div class="col-6">
                         <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>">
                         <label class="option-card w-100 p-2 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm rounded text-primary" for="user-<%= user.id %>">
-                            <span class="fs-6 fw-bold text-truncate w-100 text-center"><%= user.name %></span>
-                            <span class="small mt-1 <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
-                                $<%= user.balance.toFixed(1) %>
-                            </span>
+                            <span class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></span>
+                            
+                            <div class="balance-box mt-2">
+                                <span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
+                                    $<%= user.balance.toFixed(1) %>
+                                </span>
+                            </div>
                         </label>
                     </div>
                 <% }) %>
