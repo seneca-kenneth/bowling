@@ -15,16 +15,12 @@
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
         
-        /* Pickleball Card Styles */
         .option-card { background-color: white; border: 1px solid #388697; transition: all 0.2s; }
-        
-        /* 當選取時，只將名變白色，餘額保持原色 */
         .btn-check:checked + .option-card { background-color: #388697; }
         .btn-check:checked + .option-card .user-name { color: white !important; }
         
-        /* 餘額盒仔樣式 */
         .balance-box {
-            background-color: #e9ecef; /* 淺灰色底 */
+            background-color: #e9ecef;
             border-radius: 8px;
             padding: 2px 8px;
             width: 100%;
@@ -56,8 +52,7 @@
         <div class="position-absolute top-50 start-50 translate-middle w-50 text-center">
             <div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div>
         </div>
-        <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-sm btn-outline-light border-0" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
+        <div class="d-flex align-items-center">
             <div class="dropdown">
                 <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
@@ -67,6 +62,12 @@
                     <li>
                         <button class="dropdown-item text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#settingsBox">
                             💰 <span data-i18n="menu_settings">設定</span>
+                        </button>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <button class="dropdown-item" onclick="toggleLanguage()">
+                            🌐 <span id="langLabel">ENG</span>
                         </button>
                     </li>
                 </ul>
@@ -181,7 +182,6 @@
                         <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>">
                         <label class="option-card w-100 p-2 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm rounded text-primary" for="user-<%= user.id %>">
                             <span class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></span>
-                            
                             <div class="balance-box mt-2">
                                 <span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
                                     $<%= user.balance.toFixed(1) %>
