@@ -184,12 +184,15 @@ app.post('/activity/:id/add-user', async (req, res) => {
     res.redirect(`/activity/${activityId}?open=true`);
 });
 
-// 7. 更新設定
+// 7. 更新設定 (已升級：支援改名)
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
-    const { cost, threshold } = req.body;
-    await query("UPDATE activities SET cost_per_game = $1, alert_threshold = $2 WHERE id = $3", 
-        [cost, threshold, activityId]);
+    const { name, cost, threshold } = req.body;
+    
+    // SQL 加咗 name = $1
+    await query("UPDATE activities SET name = $1, cost_per_game = $2, alert_threshold = $3 WHERE id = $4", 
+        [name, cost, threshold, activityId]);
+        
     res.redirect(`/activity/${activityId}?open=true`);
 });
 

@@ -25,23 +25,24 @@
         .neg-bal { color: #dc3545; }
         .pos-bal { color: #198754; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
+
+        /* 隱藏 Scrollbar */
+        ::-webkit-scrollbar { display: none; }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-dark bg-primary mb-3 sticky-top">
     <div class="container-fluid position-relative">
-        
         <div class="d-flex align-items-center">
             <a class="navbar-brand p-0 m-0" href="/">
                 <span class="fs-4">🏠</span>
             </a>
         </div>
-
         <div class="position-absolute top-50 start-50 translate-middle w-50 text-center">
             <div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div>
         </div>
-
         <div class="d-flex align-items-center gap-2">
             <button class="btn btn-sm btn-outline-light border-0" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
             <div class="dropdown">
@@ -67,6 +68,12 @@
         <div class="card card-body bg-light border-primary shadow-sm">
             <h6 class="fw-bold text-primary">🔧 <span data-i18n="settings_title">設定 & 入錢</span></h6>
             <form action="/activity/<%= activity.id %>/settings" method="POST" class="mb-3">
+                
+                <div class="mb-2">
+                    <label class="small text-muted" data-i18n="label_activity_name">活動名稱</label>
+                    <input type="text" name="name" class="form-control fw-bold" value="<%= activity.name %>" required>
+                </div>
+
                 <div class="row g-2 align-items-center">
                     <div class="col-6">
                         <label class="small text-muted" data-i18n="label_cost">每局金額</label>
@@ -133,11 +140,11 @@
                             </div>
                             <div class="w-50">
                                 <div class="input-group">
-                                    <span class="input-group-text bg-light border-0 small text-muted" data-i18n="unit_game">局</span>
                                     <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0"
                                            name="games[uid_<%= user.id %>]" 
                                            class="form-control text-center fw-bold game-input" 
                                            placeholder="0" data-userid="<%= user.id %>">
+                                    <span class="input-group-text bg-light border-0 small text-muted" data-i18n="unit_game">局</span>
                                 </div>
                             </div>
                         </div>
@@ -195,6 +202,7 @@
             menu_history: "歷史紀錄",
             menu_settings: "入錢 / 設定",
             settings_title: "設定 & 入錢",
+            label_activity_name: "活動名稱", // 🔥 Added
             label_cost: "每局金額",
             label_threshold: "低餘額提醒 $",
             btn_save_settings: "保存設定",
@@ -218,6 +226,7 @@
             menu_history: "History",
             menu_settings: "Deposit / Settings",
             settings_title: "Settings & Deposit",
+            label_activity_name: "Activity Name", // 🔥 Added
             label_cost: "Cost Per Game",
             label_threshold: "Alert Threshold $",
             btn_save_settings: "Save Settings",
