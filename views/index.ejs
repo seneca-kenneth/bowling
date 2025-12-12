@@ -31,7 +31,7 @@
         </a>
         
         <div class="d-flex align-items-center gap-3">
-            <button class="btn btn-sm btn-outline-light" onclick="toggleLanguage()">🌐 <span id="langLabel">EN</span></button>
+            <button class="btn btn-sm btn-outline-light" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
 
             <div class="dropdown">
                 <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
@@ -237,13 +237,13 @@
             if (langData[key]) el.innerText = langData[key];
         });
         
-        // 特殊處理 placeholder
         const inputNewUser = document.getElementById('inputNewUser');
         if(inputNewUser && translations[currentLang].placeholder_new_user) {
             inputNewUser.placeholder = translations[currentLang].placeholder_new_user;
         }
 
-        document.getElementById('langLabel').innerText = currentLang === 'zh' ? 'EN' : '中';
+        // 🔥 更新了邏輯：中文顯示「中」，英文顯示「ENG」
+        document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
     }
 
     function toggleLanguage() {
@@ -252,7 +252,6 @@
         applyLanguage();
     }
 
-    // 初始化語言
     applyLanguage();
 
     // --- 原有邏輯 ---

@@ -13,7 +13,7 @@
 <div class="container py-5">
     
     <div class="d-flex justify-content-end mb-2">
-        <button class="btn btn-sm btn-outline-secondary" onclick="toggleLanguage()">🌐 <span id="langLabel">EN</span></button>
+        <button class="btn btn-sm btn-outline-secondary" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
     </div>
 
     <h1 class="text-center mb-4"><span data-i18n="title">📂 我的記數簿</span></h1>
@@ -129,7 +129,8 @@
             const key = el.getAttribute('data-i18n');
             if (langData[key]) el.innerText = langData[key];
         });
-        document.getElementById('langLabel').innerText = currentLang === 'zh' ? 'EN' : '中';
+        // 🔥 更新了邏輯
+        document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
     }
 
     function toggleLanguage() {
