@@ -163,7 +163,7 @@ app.post('/activity/:id/record', async (req, res) => {
     }
 });
 
-// 5. 入錢
+// 5. 入錢 (已修改：完成後返回 Users 頁面)
 app.post('/activity/:id/deposit', async (req, res) => {
     const activityId = req.params.id;
     const { userId, amount } = req.body;
@@ -172,7 +172,8 @@ app.post('/activity/:id/deposit', async (req, res) => {
         await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'deposit', $3, '入數', NOW())", [activityId, userId, val]);
         await query("UPDATE users SET balance = balance + $1 WHERE id = $2", [val, userId]);
     }
-    res.redirect(`/activity/${activityId}?open=true`);
+    // 🔥 UPDATE: 改為返回會員頁
+    res.redirect(`/activity/${activityId}/users`);
 });
 
 // 6. 加人
