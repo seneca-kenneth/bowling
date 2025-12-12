@@ -3,15 +3,24 @@
 <head>
     <title>記數簿 Lobby</title>
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f8f9fa">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .hover-shadow:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; transition: all .2s; }
+    </style>
 </head>
 <body class="bg-light">
 <div class="container py-5">
-    <h1 class="text-center mb-4">📂 我的記數簿</h1>
+    
+    <div class="d-flex justify-content-end mb-2">
+        <button class="btn btn-sm btn-outline-secondary" onclick="toggleLanguage()">🌐 <span id="langLabel">EN</span></button>
+    </div>
+
+    <h1 class="text-center mb-4"><span data-i18n="title">📂 我的記數簿</span></h1>
     
     <div class="row g-3 justify-content-center">
         <% if (activities.length === 0) { %>
-            <div class="col-12 text-center text-muted">
+            <div class="col-12 text-center text-muted" data-i18n="no_activity">
                 暫時未有活動，請在下方建立一個！
             </div>
         <% } %>
@@ -22,9 +31,15 @@
                     <div class="card shadow-sm hover-shadow h-100">
                         <div class="card-body text-center">
                             <h3 class="card-title text-primary"><%= act.name %></h3>
-                            <p class="badge bg-secondary"><%= act.type === 'split' ? '夾錢模式' : '計局模式' %></p>
+                            <p class="badge bg-secondary">
+                                <% if(act.type === 'split') { %>
+                                    <span data-i18n="mode_split">夾錢模式</span>
+                                <% } else { %>
+                                    <span data-i18n="mode_bowling">計局模式</span>
+                                <% } %>
+                            </p>
                             <% if(act.type !== 'split') { %>
-                                <p class="text-muted mb-0">每局: $<%= parseFloat(act.cost_per_game).toFixed(2) %></p>
+                                <p class="text-muted mb-0"><span data-i18n="per_game">每局</span>: $<%= parseFloat(act.cost_per_game).toFixed(2) %></p>
                             <% } %>
                         </div>
                     </div>
@@ -37,33 +52,33 @@
 
     <div class="text-center mb-3">
         <button class="btn btn-lg btn-outline-success" type="button" data-bs-toggle="collapse" data-bs-target="#createActivityBox">
-            ➕ 建立新活動
+            ➕ <span data-i18n="btn_create_new">建立新活動</span>
         </button>
     </div>
 
     <div class="collapse" id="createActivityBox">
         <div class="card mx-auto" style="max-width: 500px;">
             <div class="card-body">
-                <h5 class="card-title text-center">新活動資料</h5>
+                <h5 class="card-title text-center" data-i18n="new_activity_title">新活動資料</h5>
                 <form action="/create-activity" method="POST">
                     <div class="mb-3">
-                        <label class="form-label">活動名稱</label>
-                        <input type="text" name="name" class="form-control" placeholder="例如: 星期五保齡 / Pickleball" required>
+                        <label class="form-label" data-i18n="label_name">活動名稱</label>
+                        <input type="text" name="name" class="form-control" placeholder="Activity Name" required>
                     </div>
                     
                     <div class="mb-3">
-                        <label class="form-label">計費模式</label>
+                        <label class="form-label" data-i18n="label_type">計費模式</label>
                         <select name="type" class="form-select" id="activityType">
-                            <option value="split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
-                            <option value="bowling" selected>保齡球 (按局數計 x 單價)</option>
+                            <option value="split" data-i18n="opt_split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
+                            <option value="bowling" selected data-i18n="opt_bowling">保齡球 (按局數計 x 單價)</option>
                         </select>
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label">預設每局金額 (只適用於保齡)</label>
+                        <label class="form-label" data-i18n="label_default_cost">預設每局金額 (只適用於保齡)</label>
                         <input type="number" step="0.01" name="cost" class="form-control" value="5.65">
                     </div>
-                    <button class="btn btn-success w-100">立即建立</button>
+                    <button class="btn btn-success w-100" data-i18n="btn_create_submit">立即建立</button>
                 </form>
             </div>
         </div>
@@ -72,5 +87,58 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const translations = {
+        zh: {
+            title: "📂 我的記數簿",
+            no_activity: "暫時未有活動，請在下方建立一個！",
+            mode_split: "夾錢模式",
+            mode_bowling: "計局模式",
+            per_game: "每局",
+            btn_create_new: "建立新活動",
+            new_activity_title: "新活動資料",
+            label_name: "活動名稱",
+            label_type: "計費模式",
+            opt_split: "Pickleball / 食飯 (輸入總數 ÷ 人頭)",
+            opt_bowling: "保齡球 (按局數計 x 單價)",
+            label_default_cost: "預設每局金額 (只適用於保齡)",
+            btn_create_submit: "立即建立"
+        },
+        en: {
+            title: "📂 My Scorebook",
+            no_activity: "No activities yet. Create one below!",
+            mode_split: "Split Mode",
+            mode_bowling: "Game Mode",
+            per_game: "Per Game",
+            btn_create_new: "New Activity",
+            new_activity_title: "Activity Info",
+            label_name: "Activity Name",
+            label_type: "Billing Type",
+            opt_split: "Pickleball / Split Bill (Total ÷ People)",
+            opt_bowling: "Bowling (Games x Cost)",
+            label_default_cost: "Default Cost Per Game (Bowling only)",
+            btn_create_submit: "Create Now"
+        }
+    };
+
+    let currentLang = localStorage.getItem('appLang') || 'zh';
+
+    function applyLanguage() {
+        const langData = translations[currentLang];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (langData[key]) el.innerText = langData[key];
+        });
+        document.getElementById('langLabel').innerText = currentLang === 'zh' ? 'EN' : '中';
+    }
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        localStorage.setItem('appLang', currentLang);
+        applyLanguage();
+    }
+
+    applyLanguage();
+</script>
 </body>
 </html>

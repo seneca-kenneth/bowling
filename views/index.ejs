@@ -8,68 +8,44 @@
     
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { 
-            padding-bottom: 80px; 
-            background-color: #f8f9fa; 
-            margin: 0; 
-            padding-top: 0;
-        }
+        body { padding-bottom: 80px; background-color: #f8f9fa; margin: 0; padding-top: 0; }
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; }
-        
-        /* 保齡球卡片樣式 */
         .user-card { transition: all 0.2s; border: 1px solid #eee; }
         .user-card.active { background-color: #e7f1ff; border-color: #0d6efd; }
-        
-        .sticky-footer {
-            position: fixed; bottom: 0; left: 0; right: 0;
-            background: white; padding: 10px;
-            box-shadow: 0 -2px 10px rgba(0,0,0,0.1);
-            z-index: 1000;
-        }
+        .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; }
         .balance-num { font-family: monospace; font-weight: bold; }
         .neg-bal { color: #dc3545; }
         .pos-bal { color: #198754; }
-        
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
-
-        /* 🔥 修復 Pickleball 選項樣式 (避免全白) */
-        .option-card {
-            background-color: white; /* 未選時白色 */
-            border: 1px solid #0d6efd;
-            transition: all 0.2s;
-        }
-        .btn-check:checked + .option-card {
-            background-color: #0d6efd; /* 選中時變藍色 */
-            color: white !important;
-        }
-        /* 確保選中時，裏面的細字(金額)都變白 */
-        .btn-check:checked + .option-card .small {
-            color: white !important;
-        }
+        .option-card { background-color: white; border: 1px solid #0d6efd; transition: all 0.2s; }
+        .btn-check:checked + .option-card { background-color: #0d6efd; color: white !important; }
+        .btn-check:checked + .option-card .small { color: white !important; }
     </style>
 </head>
 <body>
 
 <nav class="navbar navbar-dark bg-primary mb-3 sticky-top">
     <div class="container-fluid d-flex justify-content-between align-items-center">
-        <a class="navbar-brand mb-0 h1 text-truncate" style="max-width: 70%;" href="/">
+        <a class="navbar-brand mb-0 h1 text-truncate" style="max-width: 60%;" href="/">
             <small>🏠</small> <%= activity.name %>
         </a>
-        <div class="dropdown">
-            <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                ⚙️
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
-                <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 會員管理</a></li>
-                <li><a class="dropdown-item" href="/activity/<%= activity.id %>/history">📜 歷史紀錄</a></li>
-                <li><hr class="dropdown-divider"></li>
-                <li>
-                    <button class="dropdown-item text-primary fw-bold" type="button" 
-                            data-bs-toggle="collapse" data-bs-target="#settingsBox">
-                        💰 入錢 / 設定
-                    </button>
-                </li>
-            </ul>
+        
+        <div class="d-flex align-items-center gap-3">
+            <button class="btn btn-sm btn-outline-light" onclick="toggleLanguage()">🌐 <span id="langLabel">EN</span></button>
+
+            <div class="dropdown">
+                <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
+                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
+                    <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 <span data-i18n="menu_members">會員管理</span></a></li>
+                    <li><a class="dropdown-item" href="/activity/<%= activity.id %>/history">📜 <span data-i18n="menu_history">歷史紀錄</span></a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                        <button class="dropdown-item text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#settingsBox">
+                            💰 <span data-i18n="menu_settings">入錢 / 設定</span>
+                        </button>
+                    </li>
+                </ul>
+            </div>
         </div>
     </div>
 </nav>
@@ -78,24 +54,24 @@
     
     <div class="collapse mb-3 <%= keepOpen ? 'show' : '' %>" id="settingsBox">
         <div class="card card-body bg-light border-primary shadow-sm">
-            <h6 class="fw-bold text-primary">🔧 設定 & 入錢</h6>
+            <h6 class="fw-bold text-primary">🔧 <span data-i18n="settings_title">設定 & 入錢</span></h6>
             <form action="/activity/<%= activity.id %>/settings" method="POST" class="mb-3">
                 <div class="row g-2 align-items-center">
                     <div class="col-6">
-                        <label class="small text-muted">每局金額 (保齡)</label>
+                        <label class="small text-muted" data-i18n="label_cost">每局金額</label>
                         <input type="number" step="0.01" name="cost" class="form-control" value="<%= costPerGame %>">
                     </div>
                     <div class="col-6">
-                        <label class="small text-muted">低餘額提醒 $</label>
+                        <label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label>
                         <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
                     </div>
                     <div class="col-12 text-end mt-2">
-                        <button class="btn btn-sm btn-secondary w-100">保存設定</button>
+                        <button class="btn btn-sm btn-secondary w-100" data-i18n="btn_save_settings">保存設定</button>
                     </div>
                 </div>
             </form>
             <hr>
-            <h6 class="fw-bold text-success">💰 入錢</h6>
+            <h6 class="fw-bold text-success">💰 <span data-i18n="deposit_title">入錢</span></h6>
             <form action="/activity/<%= activity.id %>/deposit" method="POST" class="row g-2">
                 <div class="col-5">
                     <select name="userId" class="form-select">
@@ -108,20 +84,20 @@
                     <input type="number" step="0.1" name="amount" class="form-control" placeholder="$">
                 </div>
                 <div class="col-3">
-                    <button class="btn btn-success w-100">確定</button>
+                    <button class="btn btn-success w-100" data-i18n="btn_confirm">確定</button>
                 </div>
             </form>
             <hr>
             <form action="/activity/<%= activity.id %>/add-user" method="POST" class="d-flex gap-2">
-                <input type="text" name="name" class="form-control" placeholder="新會員名">
-                <button class="btn btn-outline-primary">加人</button>
+                <input type="text" name="name" class="form-control" id="inputNewUser" placeholder="新會員名">
+                <button class="btn btn-outline-primary" data-i18n="btn_add_user">加人</button>
             </form>
         </div>
     </div>
 
     <% if (alertUsers.length > 0) { %>
         <div class="alert alert-danger py-2 mb-3 small shadow-sm">
-            <strong>⚠️ 餘額不足 $<%= alertThreshold %>:</strong> 
+            <strong>⚠️ <span data-i18n="alert_balance">餘額不足</span> $<%= alertThreshold %>:</strong> 
             <%= alertUsers.map(u => u.name).join(', ') %>
         </div>
     <% } %>
@@ -130,8 +106,8 @@
         
         <% if (!activity.type || activity.type === 'bowling') { %>
             <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                <h5 class="mb-0 text-secondary">每局 $<%= costPerGame %></h5>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetForm()">重置</button>
+                <h5 class="mb-0 text-secondary"><span data-i18n="cost_per_game">每局</span> $<%= costPerGame %></h5>
+                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetForm()" data-i18n="btn_reset">重置</button>
             </div>
 
             <div class="row g-2">
@@ -146,11 +122,11 @@
                             </div>
                             <div class="w-50">
                                 <div class="input-group">
+                                    <span class="input-group-text bg-light border-0 small text-muted" data-i18n="unit_game">局</span>
                                     <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0"
                                            name="games[uid_<%= user.id %>]" 
                                            class="form-control text-center fw-bold game-input" 
                                            placeholder="0" data-userid="<%= user.id %>">
-                                    <span class="input-group-text bg-light border-0 small text-muted">局</span>
                                 </div>
                             </div>
                         </div>
@@ -162,23 +138,23 @@
 
             <div class="sticky-footer d-flex gap-2 justify-content-between align-items-center border-top">
                 <div class="small text-muted">
-                    <span id="totalPeople" class="fw-bold text-dark fs-5">0</span> 人
-                    / <span id="totalGames" class="fw-bold text-dark fs-5">0</span> 局
+                    <span id="totalPeople" class="fw-bold text-dark fs-5">0</span> <span data-i18n="txt_people">人</span>
+                    / <span id="totalGames" class="fw-bold text-dark fs-5">0</span> <span data-i18n="txt_games">局</span>
                 </div>
-                <button type="submit" class="btn btn-primary px-5 fw-bold shadow">扣數</button>
+                <button type="submit" class="btn btn-primary px-5 fw-bold shadow" data-i18n="btn_deduct">扣數</button>
             </div>
 
         <% } else { %>
             <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
-                <label class="form-label fw-bold text-primary">是次總數 ($)</label>
+                <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg mb-2">
                     <span class="input-group-text bg-primary text-white border-0">$</span>
                     <input type="number" step="0.1" name="totalCost" class="form-control fw-bold fs-4" value="45.2" required>
-                    <button class="btn btn-primary px-3">確認</button>
+                    <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <span class="small text-muted">揀選有份玩的人</span>
-                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAll()">全選 / 清除</button>
+                    <span class="small text-muted" data-i18n="txt_select_players">揀選有份玩的人</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAll()" data-i18n="btn_toggle_all">全選 / 清除</button>
                 </div>
             </div>
 
@@ -186,7 +162,6 @@
                 <% users.forEach(user => { %>
                     <div class="col-6 col-md-4">
                         <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>">
-                        
                         <label class="option-card w-100 p-3 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm rounded text-primary" for="user-<%= user.id %>">
                             <span class="fs-5 fw-bold"><%= user.name %></span>
                             <span class="small mt-1 <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
@@ -203,7 +178,84 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    // 保齡球模式邏輯
+    // --- 語言切換邏輯 ---
+    const translations = {
+        zh: {
+            menu_members: "會員管理",
+            menu_history: "歷史紀錄",
+            menu_settings: "入錢 / 設定",
+            settings_title: "設定 & 入錢",
+            label_cost: "每局金額",
+            label_threshold: "低餘額提醒 $",
+            btn_save_settings: "保存設定",
+            deposit_title: "入錢",
+            btn_confirm: "確定",
+            btn_add_user: "加人",
+            alert_balance: "餘額不足",
+            cost_per_game: "每局",
+            btn_reset: "重置",
+            unit_game: "局",
+            txt_people: "人",
+            txt_games: "局",
+            btn_deduct: "扣數",
+            label_total_cost: "是次總數 ($)",
+            txt_select_players: "揀選有份玩的人",
+            btn_toggle_all: "全選 / 清除",
+            placeholder_new_user: "新會員名"
+        },
+        en: {
+            menu_members: "Members",
+            menu_history: "History",
+            menu_settings: "Deposit / Settings",
+            settings_title: "Settings & Deposit",
+            label_cost: "Cost Per Game",
+            label_threshold: "Alert Threshold $",
+            btn_save_settings: "Save Settings",
+            deposit_title: "Deposit",
+            btn_confirm: "Confirm",
+            btn_add_user: "Add",
+            alert_balance: "Low Balance",
+            cost_per_game: "Per Game",
+            btn_reset: "Reset",
+            unit_game: "G",
+            txt_people: "Ppl",
+            txt_games: "Gms",
+            btn_deduct: "Submit",
+            label_total_cost: "Total Amount ($)",
+            txt_select_players: "Select Players",
+            btn_toggle_all: "Select/Clear All",
+            placeholder_new_user: "New Name"
+        }
+    };
+
+    let currentLang = localStorage.getItem('appLang') || 'zh';
+
+    function applyLanguage() {
+        const langData = translations[currentLang];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (langData[key]) el.innerText = langData[key];
+        });
+        
+        // 特殊處理 placeholder
+        const inputNewUser = document.getElementById('inputNewUser');
+        if(inputNewUser && translations[currentLang].placeholder_new_user) {
+            inputNewUser.placeholder = translations[currentLang].placeholder_new_user;
+        }
+
+        document.getElementById('langLabel').innerText = currentLang === 'zh' ? 'EN' : '中';
+    }
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        localStorage.setItem('appLang', currentLang);
+        applyLanguage();
+    }
+
+    // 初始化語言
+    applyLanguage();
+
+    // --- 原有邏輯 ---
     const inputs = document.querySelectorAll('.game-input');
     const totalPeopleSpan = document.getElementById('totalPeople');
     const totalGamesSpan = document.getElementById('totalGames');
@@ -224,7 +276,6 @@
 
     function resetForm() { inputs.forEach(i => i.value = ''); if(totalPeopleSpan) updateSummary(); }
 
-    // Pickleball 模式的全選功能
     function toggleAll() {
         const boxes = document.querySelectorAll('.user-checkbox');
         const allChecked = Array.from(boxes).every(b => b.checked);

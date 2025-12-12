@@ -3,29 +3,31 @@
 <head>
     <title>會員管理</title>
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <meta name="theme-color" content="#6c757d">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 </head>
 <body class="bg-light">
 
 <nav class="navbar navbar-dark bg-secondary mb-3">
-    <div class="container-fluid">
+    <div class="container-fluid d-flex justify-content-between">
         <a class="navbar-brand" href="/activity/<%= activity.id %>">
-            ⬅️ 返回 <%= activity.name %>
+            ⬅️ <span data-i18n="nav_back">返回</span> <%= activity.name %>
         </a>
+        <button class="btn btn-sm btn-outline-light" onclick="toggleLanguage()">🌐 <span id="langLabel">EN</span></button>
     </div>
 </nav>
 
 <div class="container">
-    <h4 class="mb-3">👥 會員管理</h4>
+    <h4 class="mb-3">👥 <span data-i18n="title">會員管理</span></h4>
 
     <div class="card shadow-sm">
         <div class="card-body p-0">
             <table class="table table-striped mb-0 align-middle">
                 <thead class="table-dark">
                     <tr>
-                        <th>姓名</th>
-                        <th>目前餘額</th>
-                        <th class="text-end">操作</th>
+                        <th data-i18n="th_name">姓名</th>
+                        <th data-i18n="th_balance">目前餘額</th>
+                        <th class="text-end" data-i18n="th_action">操作</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -39,12 +41,12 @@
                                 <button class="btn btn-sm btn-outline-primary btn-edit-user"
                                         data-id="<%= user.id %>"
                                         data-name="<%= user.name %>">
-                                    改名
+                                    <span data-i18n="btn_rename">改名</span>
                                 </button>
                                 <button class="btn btn-sm btn-outline-danger btn-delete-user"
                                         data-id="<%= user.id %>"
                                         data-name="<%= user.name %>">
-                                    刪除
+                                    <span data-i18n="btn_delete">刪除</span>
                                 </button>
                             </td>
                         </tr>
@@ -55,7 +57,7 @@
     </div>
     
     <div class="mt-3 text-muted small">
-        提示：刪除會員不會刪除其歷史交易紀錄，但歷史紀錄將不再顯示該會員名稱。
+        <span data-i18n="hint_text">提示：刪除會員不會刪除其歷史交易紀錄，但歷史紀錄將不再顯示該會員名稱。</span>
     </div>
 </div>
 
@@ -63,20 +65,20 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title">✏️ 修改會員資料</h5>
+                <h5 class="modal-title">✏️ <span data-i18n="modal_edit_title">修改會員資料</span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/activity/<%= activity.id %>/edit-user" method="POST">
                 <div class="modal-body">
                     <input type="hidden" name="id" id="editUserId">
                     <div class="mb-3">
-                        <label class="form-label">會員名稱</label>
+                        <label class="form-label" data-i18n="label_name">會員名稱</label>
                         <input type="text" name="name" id="editUserName" class="form-control" required>
                     </div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-primary">保存</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button>
+                    <button type="submit" class="btn btn-primary" data-i18n="btn_save">保存</button>
                 </div>
             </form>
         </div>
@@ -87,18 +89,18 @@
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title text-danger">⚠️ 刪除會員</h5>
+                <h5 class="modal-title text-danger">⚠️ <span data-i18n="modal_delete_title">刪除會員</span></h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
             <form action="/activity/<%= activity.id %>/delete-user" method="POST">
                 <div class="modal-body">
                     <input type="hidden" name="id" id="deleteUserId">
-                    <p>確定要刪除會員 <strong><span id="deleteUserName"></span></strong> 嗎？</p>
-                    <p class="text-danger small fw-bold">此操作無法復原！</p>
+                    <p><span data-i18n="confirm_delete_text">確定要刪除會員</span> <strong><span id="deleteUserName"></span></strong> <span data-i18n="question_mark">嗎？</span></p>
+                    <p class="text-danger small fw-bold" data-i18n="warning_irreversible">此操作無法復原！</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
-                    <button type="submit" class="btn btn-danger">確認刪除</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button>
+                    <button type="submit" class="btn btn-danger" data-i18n="btn_confirm_delete">確認刪除</button>
                 </div>
             </form>
         </div>
@@ -107,10 +109,71 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    // --- 語言切換邏輯 ---
+    const translations = {
+        zh: {
+            nav_back: "返回",
+            title: "會員管理",
+            th_name: "姓名",
+            th_balance: "目前餘額",
+            th_action: "操作",
+            btn_rename: "改名",
+            btn_delete: "刪除",
+            hint_text: "提示：刪除會員不會刪除其歷史交易紀錄，但歷史紀錄將不再顯示該會員名稱。",
+            modal_edit_title: "修改會員資料",
+            label_name: "會員名稱",
+            btn_cancel: "取消",
+            btn_save: "保存",
+            modal_delete_title: "刪除會員",
+            confirm_delete_text: "確定要刪除會員",
+            question_mark: "嗎？",
+            warning_irreversible: "此操作無法復原！",
+            btn_confirm_delete: "確認刪除"
+        },
+        en: {
+            nav_back: "Back to",
+            title: "Members",
+            th_name: "Name",
+            th_balance: "Balance",
+            th_action: "Action",
+            btn_rename: "Rename",
+            btn_delete: "Delete",
+            hint_text: "Note: Deleting a member will not remove their historical transactions.",
+            modal_edit_title: "Edit Member",
+            label_name: "Name",
+            btn_cancel: "Cancel",
+            btn_save: "Save",
+            modal_delete_title: "Delete Member",
+            confirm_delete_text: "Are you sure you want to delete",
+            question_mark: "?",
+            warning_irreversible: "This action cannot be undone!",
+            btn_confirm_delete: "Confirm Delete"
+        }
+    };
+
+    let currentLang = localStorage.getItem('appLang') || 'zh';
+
+    function applyLanguage() {
+        const langData = translations[currentLang];
+        document.querySelectorAll('[data-i18n]').forEach(el => {
+            const key = el.getAttribute('data-i18n');
+            if (langData[key]) el.innerText = langData[key];
+        });
+        document.getElementById('langLabel').innerText = currentLang === 'zh' ? 'EN' : '中';
+    }
+
+    function toggleLanguage() {
+        currentLang = currentLang === 'zh' ? 'en' : 'zh';
+        localStorage.setItem('appLang', currentLang);
+        applyLanguage();
+    }
+
+    applyLanguage();
+
+    // --- 原有 Modal 邏輯 ---
     var editUserModal = new bootstrap.Modal(document.getElementById('editUserModal'));
     var deleteUserModal = new bootstrap.Modal(document.getElementById('deleteUserModal'));
 
-    // Edit User
     document.querySelectorAll('.btn-edit-user').forEach(button => {
         button.addEventListener('click', function() {
             document.getElementById('editUserId').value = this.getAttribute('data-id');
@@ -119,7 +182,6 @@
         });
     });
 
-    // Delete User
     document.querySelectorAll('.btn-delete-user').forEach(button => {
         button.addEventListener('click', function() {
             document.getElementById('deleteUserId').value = this.getAttribute('data-id');
