@@ -15,10 +15,14 @@
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
         
+        /* Pickleball Card Style */
         .option-card { background-color: white; border: 1px solid #388697; transition: all 0.2s; }
+        
+        /* 選中時 */
         .btn-check:checked + .option-card { background-color: #388697; }
         .btn-check:checked + .option-card .user-name { color: white !important; }
         
+        /* 餘額盒仔 (灰色底) */
         .balance-box {
             background-color: #e9ecef;
             border-radius: 8px;
@@ -82,12 +86,10 @@
         <div class="card card-body bg-light border-primary shadow-sm">
             <h6 class="fw-bold text-primary">🔧 <span data-i18n="settings_title">設定</span></h6>
             <form action="/activity/<%= activity.id %>/settings" method="POST" class="mb-3">
-                
                 <div class="mb-2">
                     <label class="small text-muted" data-i18n="label_activity_name">活動名稱</label>
                     <input type="text" name="name" class="form-control fw-bold" value="<%= activity.name %>" required>
                 </div>
-
                 <div class="row g-2 align-items-center">
                     <% if (!activity.type || activity.type === 'bowling') { %>
                         <div class="col-6">
@@ -167,11 +169,16 @@
                 <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg mb-2">
                     <span class="input-group-text bg-primary text-white border-0">$</span>
-                    <input type="number" step="0.1" name="totalCost" class="form-control fw-bold fs-4" value="45.2" required>
-                    <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
+                    <input type="number" step="0.1" name="totalCost" id="totalCostInput" 
+                           class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
+                    
+                    <button id="btnSubmitSplit" class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
-                    <span class="small text-muted" data-i18n="txt_select_players">揀選有份玩的人</span>
+                    <span class="small text-muted">
+                        <span data-i18n="txt_select_players">揀選有份玩的人</span> 
+                        (<span id="splitCount">0</span>)
+                    </span>
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAll()" data-i18n="btn_toggle_all">全選 / 清除</button>
                 </div>
             </div>
@@ -179,13 +186,20 @@
             <div class="row g-2">
                 <% users.forEach(user => { %>
                     <div class="col-6">
-                        <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>">
+                        <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" 
+                               value="<%= user.id %>" id="user-<%= user.id %>" onchange="updateSplit()">
+                        
                         <label class="option-card w-100 p-2 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm rounded text-primary" for="user-<%= user.id %>">
                             <span class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></span>
+                            
                             <div class="balance-box mt-2">
                                 <span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
                                     $<%= user.balance.toFixed(1) %>
                                 </span>
+                            </div>
+
+                            <div class="split-info mt-1 text-white fw-bold small" id="split-info-<%= user.id %>" style="display: none;">
+                                -$0.0
                             </div>
                         </label>
                     </div>
@@ -209,7 +223,7 @@
             label_threshold: "低餘額提醒 $",
             btn_save_settings: "保存設定",
             deposit_title: "入錢",
-            btn_confirm: "確定",
+            btn_confirm: "確認",
             btn_add_user: "加人",
             alert_balance: "餘額不足",
             cost_per_game: "每局",
@@ -292,11 +306,60 @@
 
     function resetForm() { inputs.forEach(i => i.value = ''); if(totalPeopleSpan) updateSummary(); }
 
+    // Pickleball Toggle All
     function toggleAll() {
         const boxes = document.querySelectorAll('.user-checkbox');
         const allChecked = Array.from(boxes).every(b => b.checked);
         boxes.forEach(b => b.checked = !allChecked);
+        updateSplit(); // 觸發重算
     }
+
+    // 🔥 NEW: 即時計算 Pickleball 人頭費
+    function updateSplit() {
+        const totalInput = document.getElementById('totalCostInput');
+        // 只有在 Pickleball 模式才執行
+        if (!totalInput) return; 
+
+        const checkboxes = document.querySelectorAll('.user-checkbox');
+        const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+        
+        let total = parseFloat(totalInput.value) || 0;
+        let count = checkedBoxes.length;
+        
+        // 更新人數
+        const countSpan = document.getElementById('splitCount');
+        if (countSpan) countSpan.innerText = count;
+
+        let perHead = 0;
+        if (count > 0) {
+            perHead = total / count;
+        }
+
+        // 更新每個卡片上的金額
+        checkboxes.forEach(cb => {
+            const infoDiv = document.getElementById('split-info-' + cb.value);
+            if (cb.checked) {
+                infoDiv.innerText = `-$${perHead.toFixed(1)}`;
+                infoDiv.style.display = 'block';
+            } else {
+                infoDiv.style.display = 'none';
+            }
+        });
+
+        // 順便 Update 埋個按鈕 Text
+        const submitBtn = document.getElementById('btnSubmitSplit');
+        if (submitBtn) {
+            if (count > 0) {
+                submitBtn.innerText = `-$${perHead.toFixed(1)}`;
+            } else {
+                submitBtn.innerText = translations[currentLang].btn_confirm; // 變返 "確認"
+            }
+        }
+    }
+
+    // 初始化運行一次
+    updateSplit();
+
 </script>
 </body>
 </html>
