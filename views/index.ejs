@@ -75,14 +75,24 @@
                 </div>
 
                 <div class="row g-2 align-items-center">
-                    <div class="col-6">
-                        <label class="small text-muted" data-i18n="label_cost">每局金額</label>
-                        <input type="number" step="0.01" name="cost" class="form-control" value="<%= costPerGame %>">
-                    </div>
-                    <div class="col-6">
-                        <label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label>
-                        <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
-                    </div>
+                    
+                    <% if (!activity.type || activity.type === 'bowling') { %>
+                        <div class="col-6">
+                            <label class="small text-muted" data-i18n="label_cost">每局金額</label>
+                            <input type="number" step="0.01" name="cost" class="form-control" value="<%= costPerGame %>">
+                        </div>
+                        <div class="col-6">
+                            <label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label>
+                            <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
+                        </div>
+                    <% } else { %>
+                        <input type="hidden" name="cost" value="<%= costPerGame %>">
+                        <div class="col-12">
+                            <label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label>
+                            <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
+                        </div>
+                    <% } %>
+
                     <div class="col-12 text-end mt-2">
                         <button class="btn btn-sm btn-secondary w-100" data-i18n="btn_save_settings">保存設定</button>
                     </div>
@@ -202,7 +212,7 @@
             menu_history: "歷史紀錄",
             menu_settings: "入錢 / 設定",
             settings_title: "設定 & 入錢",
-            label_activity_name: "活動名稱", // 🔥 Added
+            label_activity_name: "活動名稱",
             label_cost: "每局金額",
             label_threshold: "低餘額提醒 $",
             btn_save_settings: "保存設定",
@@ -226,7 +236,7 @@
             menu_history: "History",
             menu_settings: "Deposit / Settings",
             settings_title: "Settings & Deposit",
-            label_activity_name: "Activity Name", // 🔥 Added
+            label_activity_name: "Activity Name",
             label_cost: "Cost Per Game",
             label_threshold: "Alert Threshold $",
             btn_save_settings: "Save Settings",
