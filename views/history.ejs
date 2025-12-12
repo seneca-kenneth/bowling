@@ -14,7 +14,11 @@
         .amount-neg { color: red; font-weight: bold; }
         .table-text-small { font-size: 0.9rem; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
-        .btn-check:checked + .btn-outline-primary { background-color: #388697; color: white; }
+        
+        .btn-check:checked + .btn-outline-primary {
+            background-color: #388697; color: white;
+        }
+
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -31,18 +35,13 @@
         <div class="position-absolute top-50 start-50 translate-middle w-50 text-center">
             <div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div>
         </div>
-        <div class="d-flex align-items-center">
+        <div class="d-flex align-items-center gap-2">
+            <button class="btn btn-sm btn-outline-light border-0" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
             <div class="dropdown">
                 <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>">🏠 <span data-i18n="menu_return">返回記數</span></a></li>
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 <span data-i18n="menu_members">會員管理</span></a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li>
-                        <button class="dropdown-item" onclick="toggleLanguage()">
-                            🌐 <span id="langLabel">ENG</span>
-                        </button>
-                    </li>
                 </ul>
             </div>
         </div>
@@ -153,7 +152,17 @@
                         </div>
 
                         <div id="editParticipantsSection" class="d-none mt-3">
-                            <label class="form-label fw-bold" data-i18n="label_participants">修改參與者 (重新計算人頭費)</label>
+                            
+                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-white border rounded">
+                                <span class="fw-bold">👥 <span data-i18n="label_guests">訪客/Guest</span></span>
+                                <div class="input-group" style="width: 120px;">
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeEditGuest(-1)">-</button>
+                                    <input type="text" name="guestCount" id="editGuestInput" class="form-control text-center fw-bold" value="0" readonly>
+                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeEditGuest(1)">+</button>
+                                </div>
+                            </div>
+
+                            <label class="form-label fw-bold" data-i18n="label_participants">修改參與者</label>
                             <div class="card card-body bg-light p-2" style="max-height: 200px; overflow-y: auto;">
                                 <div class="row g-2">
                                     <% users.forEach(user => { %>
@@ -209,7 +218,8 @@
             hint_recalc: "系統會根據新選擇的人數及金額重新分配。",
             btn_save_changes: "保存修改",
             menu_return: "返回記數",
-            menu_members: "會員管理"
+            menu_members: "會員管理",
+            label_guests: "訪客/Guest"
         },
         en: {
             nav_back: "Back",
@@ -233,7 +243,8 @@
             hint_recalc: "System will redistribute cost based on new selection.",
             btn_save_changes: "Save Changes",
             menu_return: "Back to Record",
-            menu_members: "Members"
+            menu_members: "Members",
+            label_guests: "Guests"
         }
     };
 
@@ -255,6 +266,15 @@
     }
 
     applyLanguage();
+
+    // 🔥 Guest Change Logic
+    function changeEditGuest(delta) {
+        const input = document.getElementById('editGuestInput');
+        let val = parseInt(input.value) || 0;
+        val += delta;
+        if (val < 0) val = 0;
+        input.value = val;
+    }
 
     const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
     document.querySelectorAll('.btn-delete').forEach(btn => {
@@ -282,9 +302,12 @@
             const participantsSection = document.getElementById('editParticipantsSection');
             const gameInput = document.getElementById('inputGameCount');
             const amountInput = document.getElementById('inputAmount');
+            const guestInput = document.getElementById('editGuestInput');
 
+            // Reset UI
             gameInput.value = '';
             amountInput.value = '';
+            guestInput.value = '0'; // Reset guests
             gameSection.classList.add('d-none');
             amountSection.classList.add('d-none');
             participantsSection.classList.add('d-none');
@@ -302,6 +325,12 @@
                 
                 const match = desc.match(/共\$(\d+(\.\d+)?)/);
                 if(match) amountInput.value = match[1];
+
+                // 🔥 讀取描述中的訪客數量 (例如: [2訪客])
+                const guestMatch = desc.match(/\[(\d+)訪客\]/);
+                if (guestMatch) {
+                    guestInput.value = guestMatch[1];
+                }
 
                 fetch(`/activity/${actId}/transaction/${id}/group`)
                     .then(res => res.json())

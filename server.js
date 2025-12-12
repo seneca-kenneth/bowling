@@ -297,10 +297,10 @@ app.get('/activity/:id/transaction/:transId/group', async (req, res) => {
     }
 });
 
-// 13. Update Transaction (Group Re-calculation)
+// 13. Update Transaction (🔥 UPDATE: 支援修改訪客數)
 app.post('/activity/:id/update-transaction', async (req, res) => {
     const activityId = req.params.id;
-    const { id, newGameCount, newAmount, selectedUsers } = req.body;
+    const { id, newGameCount, newAmount, selectedUsers, guestCount } = req.body; // 🔥 接收 guestCount
 
     try {
         const oldTransRes = await query("SELECT * FROM transactions WHERE id = $1", [id]);
@@ -308,44 +308,56 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
         if (!oldTrans) return res.redirect(`/activity/${activityId}/history`);
 
         if (selectedUsers) {
-            // Pickleball Modification
+            // --- Pickleball 修改 ---
             let userIds = Array.isArray(selectedUsers) ? selectedUsers : [selectedUsers];
             const recordDate = new Date(oldTrans.date).toISOString();
             
+            // 1. 找出舊的一組交易
             const siblingsRes = await query(`
                 SELECT * FROM transactions 
                 WHERE activity_id = $1 AND description = $2 AND date = $3`, 
                 [activityId, oldTrans.description, recordDate]
             );
             
-            // Wipe
+            // 2. 還原舊數 & 刪除
             for (const t of siblingsRes.rows) {
                 await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(t.amount), t.user_id]);
                 await query("DELETE FROM transactions WHERE id = $1", [t.id]);
             }
 
-            // Recreate
+            // 3. 計算新數
             let totalCost = 0;
             if (newAmount) {
                 totalCost = parseFloat(newAmount);
             } else {
+                // 如果無改金額，嘗試從舊描述提取總數
                 const match = oldTrans.description.match(/共\$(\d+(\.\d+)?)/);
+                // 如果提取唔到，就用舊數總和 (絕對值)
                 totalCost = match ? parseFloat(match[1]) : Math.abs(parseFloat(oldTrans.amount) * siblingsRes.rows.length);
             }
 
-            if (userIds.length > 0 && totalCost > 0) {
-                const perHeadCost = totalCost / userIds.length;
+            // 🔥 處理訪客
+            const guests = parseInt(guestCount) || 0;
+            const totalHeadCount = userIds.length + guests;
+
+            // 4. 建立新紀錄
+            if (totalHeadCount > 0 && totalCost > 0) {
+                const perHeadCost = totalCost / totalHeadCount;
                 const sameDate = oldTrans.date; 
 
                 for (const uid of userIds) {
+                    // 🔥 生成新描述 (含訪客)
+                    let desc = `夾場租 (共$${totalCost})`;
+                    if (guests > 0) desc += ` [${guests}訪客]`;
+
                     await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
-                        [activityId, uid, -perHeadCost, `夾場租 (共$${totalCost})`, sameDate]);
+                        [activityId, uid, -perHeadCost, desc, sameDate]);
                     await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [perHeadCost, uid]);
                 }
             }
 
         } else {
-            // Normal Update
+            // --- 普通修改 (保齡球/入錢) 保持不變 ---
             await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(oldTrans.amount), oldTrans.user_id]);
 
             let finalAmount = 0;
