@@ -105,12 +105,11 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 5. Record Logic (Supports Guest & Timestamp Grouping)
+// 5. 記數邏輯 (🔥 UPDATE: 支援指定用戶帶 Guest)
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
-    const { games, selectedUsers, totalCost, guestCount } = req.body; 
+    const { games, selectedUsers, totalCost, guests } = req.body; 
     
-    // 統一時間戳，用於識別同一組交易
     const recordTime = new Date(); 
 
     try {
@@ -118,13 +117,12 @@ app.post('/activity/:id/record', async (req, res) => {
         const activity = actRes.rows[0];
 
         if (activity.type === 'bowling') {
+            // ... (Bowling 邏輯保持不變) ...
             if (!games) return res.redirect(`/activity/${activityId}`);
             const costPerGame = parseFloat(activity.cost_per_game);
-
             for (const [key, countStr] of Object.entries(games)) {
                 const userId = parseInt(key.replace('uid_', '')); 
                 const gameCount = parseInt(countStr);
-
                 if (!isNaN(gameCount) && gameCount > 0) {
                     const cost = gameCount * costPerGame;
                     await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
@@ -133,25 +131,44 @@ app.post('/activity/:id/record', async (req, res) => {
                 }
             }
         } else {
-            // Pickleball / Split Mode
-            let users = [];
-            if (Array.isArray(selectedUsers)) users = selectedUsers;
-            else if (selectedUsers) users = [selectedUsers];
+            // --- Pickleball Mode (加權計算) ---
+            let userIds = [];
+            if (Array.isArray(selectedUsers)) userIds = selectedUsers;
+            else if (selectedUsers) userIds = [selectedUsers];
 
-            const guests = parseInt(guestCount) || 0;
-            const totalHeadCount = users.length + guests;
             const cost = parseFloat(totalCost);
             
-            if (totalHeadCount > 0 && cost > 0) {
-                const perHeadCost = cost / totalHeadCount;
+            // 1. 計算總人頭數 (Total Heads)
+            let totalHeads = 0;
+            let userHeadsMap = {}; // 紀錄每個人佔幾份
+
+            userIds.forEach(uid => {
+                let myGuest = 0;
+                // guests 傳入來可能係 guests['uid_1']
+                if (guests && guests[`uid_${uid}`]) {
+                    myGuest = parseInt(guests[`uid_${uid}`]);
+                }
+                const myTotal = 1 + myGuest; // 自己 + 訪客
+                userHeadsMap[uid] = myTotal;
+                totalHeads += myTotal;
+            });
+            
+            if (totalHeads > 0 && cost > 0) {
+                const perHeadCost = cost / totalHeads; // 單份價錢
                 
-                for (const userId of users) {
+                for (const userId of userIds) {
+                    const myHeads = userHeadsMap[userId];
+                    const myCost = perHeadCost * myHeads; // 該用戶應付總額
+
+                    // Description: "夾場租 (共$100) [1+2訪客]"
                     let desc = `夾場租 (共$${cost})`;
-                    if (guests > 0) desc += ` [${guests}訪客]`;
+                    if (myHeads > 1) {
+                        desc += ` [1+${myHeads-1}訪客]`;
+                    }
 
                     await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
-                        [activityId, userId, -perHeadCost, desc, recordTime]);
-                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [perHeadCost, userId]);
+                        [activityId, userId, -myCost, desc, recordTime]);
+                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, userId]);
                 }
             }
         }
