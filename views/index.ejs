@@ -98,8 +98,7 @@
                     </div>
                 </div>
             </form>
-            
-            </div>
+        </div>
     </div>
 
     <% if (alertUsers.length > 0) { %>
@@ -119,7 +118,7 @@
 
             <div class="row g-2">
                 <% users.forEach(user => { %>
-                    <div class="col-12 col-md-4">
+                    <div class="col-12 col-md-6">
                         <div class="user-card p-2 rounded d-flex justify-content-between align-items-center shadow-sm bg-white" id="card-<%= user.id %>">
                             <div class="w-50">
                                 <div class="fw-bold fs-5"><%= user.name %></div>
@@ -167,10 +166,10 @@
 
             <div class="row g-2">
                 <% users.forEach(user => { %>
-                    <div class="col-6 col-md-4">
+                    <div class="col-4">
                         <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>">
-                        <label class="option-card w-100 p-3 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm rounded text-primary" for="user-<%= user.id %>">
-                            <span class="fs-5 fw-bold"><%= user.name %></span>
+                        <label class="option-card w-100 p-2 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm rounded text-primary" for="user-<%= user.id %>">
+                            <span class="fs-6 fw-bold text-truncate w-100 text-center"><%= user.name %></span>
                             <span class="small mt-1 <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
                                 $<%= user.balance.toFixed(1) %>
                             </span>
