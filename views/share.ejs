@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title><%= activity.name %> (Read Only)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
+    <meta name="theme-color" content="#388697">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .bg-primary { background-color: #388697 !important; }
+        .text-primary { color: #388697 !important; }
+        .amount-pos { color: green; font-weight: bold; }
+        .amount-neg { color: red; font-weight: bold; }
+        body { background-color: #f8f9fa; }
+        ::-webkit-scrollbar { display: none; }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-light">
+
+<nav class="navbar navbar-dark bg-primary mb-3">
+    <div class="container-fluid justify-content-center">
+        <span class="navbar-brand mb-0 h1">👀 <%= activity.name %> (只讀)</span>
+    </div>
+</nav>
+
+<div class="container">
+    
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white fw-bold text-center">會員餘額</div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0 text-center">
+                <thead class="table-light">
+                    <tr><th>姓名</th><th>餘額</th></tr>
+                </thead>
+                <tbody>
+                    <% users.forEach(user => { %>
+                        <tr>
+                            <td class="fw-bold"><%= user.name %></td>
+                            <td class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %> fw-bold">
+                                $<%= user.balance.toFixed(1) %>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-white fw-bold text-center">最近紀錄 (20筆)</div>
+        <div class="card-body p-0">
+            <table class="table table-striped mb-0 small align-middle">
+                <tbody>
+                    <% transactions.forEach(t => { %>
+                        <tr>
+                            <td class="px-3">
+                                <div><strong><%= t.name || 'Unknown' %></strong></div>
+                                <div class="text-muted" style="font-size: 0.8rem;"><%= t.date.substring(0, 10) %></div>
+                            </td>
+                            <td>
+                                <%= t.description %>
+                                <% if(t.type === 'deposit') { %> <span class="badge bg-success">入數</span> <% } %>
+                            </td>
+                            <td class="text-end px-3 <%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>">
+                                <%= t.amount > 0 ? '+' : '' %><%= t.amount.toFixed(1) %>
+                            </td>
+                        </tr>
+                    <% }) %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="text-center mt-4 mb-4 text-muted small">
+        此頁面僅供查閱，無法進行操作。
+    </div>
+
+</div>
+</body>
+</html>
