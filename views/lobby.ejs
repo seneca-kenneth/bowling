@@ -34,12 +34,9 @@
             border-top: 1px solid #eee;
         }
 
-        /* 🔥 NEW: 隱藏 Scrollbar (App 體驗) */
+        /* 隱藏 Scrollbar */
         ::-webkit-scrollbar { display: none; }
-        html, body { 
-            -ms-overflow-style: none;  /* IE and Edge */
-            scrollbar-width: none;  /* Firefox */
-        }
+        html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-light">
@@ -104,13 +101,13 @@
                     
                     <div class="mb-3">
                         <label class="form-label" data-i18n="label_type">計費模式</label>
-                        <select name="type" class="form-select" id="activityType">
+                        <select name="type" class="form-select" id="activityType" onchange="toggleCostInput()">
                             <option value="split" data-i18n="opt_split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
                             <option value="bowling" selected data-i18n="opt_bowling">保齡球 (按局數計 x 單價)</option>
                         </select>
                     </div>
 
-                    <div class="mb-3">
+                    <div class="mb-3" id="costContainer">
                         <label class="form-label" data-i18n="label_default_cost">預設每局金額 (只適用於保齡)</label>
                         <input type="number" step="0.01" name="cost" class="form-control" value="5.65">
                     </div>
@@ -186,6 +183,21 @@
     }
 
     applyLanguage();
+
+    // 🔥 NEW: 控制價錢欄位顯示/隱藏
+    function toggleCostInput() {
+        const type = document.getElementById('activityType').value;
+        const container = document.getElementById('costContainer');
+        
+        if (type === 'bowling') {
+            container.classList.remove('d-none'); // 顯示
+        } else {
+            container.classList.add('d-none'); // 隱藏
+        }
+    }
+
+    // 初始化運行一次，確保頁面 Load 完狀態正確
+    toggleCostInput();
 </script>
 </body>
 </html>
