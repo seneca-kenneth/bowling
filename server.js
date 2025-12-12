@@ -19,8 +19,6 @@ async function query(text, params) {
     return await pool.query(text, params);
 }
 
-// --- Route Handlers ---
-
 // 1. Reset DB
 app.get('/reset-db', async (req, res) => {
     try {
@@ -107,12 +105,12 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 5. Record Logic (Updated: Ensure precise timestamp for grouping)
+// 5. Record Logic (Supports Guest & Timestamp Grouping)
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
-    const { games, selectedUsers, totalCost } = req.body; 
+    const { games, selectedUsers, totalCost, guestCount } = req.body; 
     
-    // 🔥 關鍵：同一批次交易使用完全相同的時間，方便後續關聯
+    // 統一時間戳，用於識別同一組交易
     const recordTime = new Date(); 
 
     try {
@@ -135,18 +133,24 @@ app.post('/activity/:id/record', async (req, res) => {
                 }
             }
         } else {
+            // Pickleball / Split Mode
             let users = [];
             if (Array.isArray(selectedUsers)) users = selectedUsers;
             else if (selectedUsers) users = [selectedUsers];
 
+            const guests = parseInt(guestCount) || 0;
+            const totalHeadCount = users.length + guests;
             const cost = parseFloat(totalCost);
             
-            if (users.length > 0 && cost > 0) {
-                const perHeadCost = cost / users.length;
+            if (totalHeadCount > 0 && cost > 0) {
+                const perHeadCost = cost / totalHeadCount;
                 
                 for (const userId of users) {
+                    let desc = `夾場租 (共$${cost})`;
+                    if (guests > 0) desc += ` [${guests}訪客]`;
+
                     await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
-                        [activityId, userId, -perHeadCost, `夾場租 (共$${cost})`, recordTime]);
+                        [activityId, userId, -perHeadCost, desc, recordTime]);
                     await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [perHeadCost, userId]);
                 }
             }
@@ -159,7 +163,7 @@ app.post('/activity/:id/record', async (req, res) => {
     }
 });
 
-// 6. Deposit (Updated: Redirect to Users)
+// 6. Deposit (Redirect to Users)
 app.post('/activity/:id/deposit', async (req, res) => {
     const activityId = req.params.id;
     const { userId, amount } = req.body;
@@ -171,7 +175,7 @@ app.post('/activity/:id/deposit', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 7. Add User (Updated: Redirect to Users)
+// 7. Add User (Redirect to Users)
 app.post('/activity/:id/add-user', async (req, res) => {
     const activityId = req.params.id;
     if(req.body.name) {
@@ -180,7 +184,7 @@ app.post('/activity/:id/add-user', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 8. Settings (Updated: Support Renaming)
+// 8. Settings (Renaming support)
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
     const { name, cost, threshold } = req.body;
@@ -189,7 +193,7 @@ app.post('/activity/:id/settings', async (req, res) => {
     res.redirect(`/activity/${activityId}?open=true`);
 });
 
-// 9. History Page (Updated: Pass 'users' for checkbox rendering)
+// 9. History Page
 app.get('/activity/:id/history', async (req, res) => {
     const activityId = req.params.id;
     try {
@@ -209,8 +213,6 @@ app.get('/activity/:id/history', async (req, res) => {
         }));
 
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
-        
-        // 🔥 Get Users for the Edit Modal
         const usersRes = await query("SELECT * FROM users WHERE activity_id = $1 ORDER BY name ASC", [activityId]);
 
         res.render('history', { 
@@ -241,7 +243,38 @@ app.get('/activity/:id/users', async (req, res) => {
     }
 });
 
-// 🔥 NEW API: Get Group Participants for a Transaction
+// 11. Read-Only Share Page
+app.get('/activity/:id/share', async (req, res) => {
+    const activityId = req.params.id;
+    try {
+        const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
+        const activity = actRes.rows[0];
+        if (!activity) return res.send("Activity not found");
+
+        const usersRes = await query("SELECT * FROM users WHERE activity_id = $1 ORDER BY name ASC", [activityId]);
+        const users = usersRes.rows.map(u => ({...u, balance: parseFloat(u.balance)}));
+
+        const transRes = await query(`
+            SELECT t.amount, t.description, t.date, t.type, u.name 
+            FROM transactions t 
+            JOIN users u ON t.user_id = u.id 
+            WHERE t.activity_id = $1 
+            ORDER BY t.date DESC LIMIT 20`, [activityId]);
+            
+        const transactions = transRes.rows.map(t => ({
+            ...t,
+            amount: parseFloat(t.amount),
+            date: new Date(t.date).toISOString()
+        }));
+
+        res.render('share', { activity, users, transactions });
+    } catch (err) {
+        console.error(err);
+        res.send("Error");
+    }
+});
+
+// 12. API: Get Group Participants
 app.get('/activity/:id/transaction/:transId/group', async (req, res) => {
     const { id, transId } = req.params;
     try {
@@ -264,7 +297,7 @@ app.get('/activity/:id/transaction/:transId/group', async (req, res) => {
     }
 });
 
-// 11. Update Transaction (Updated: Logic for wiping and recreating group)
+// 13. Update Transaction (Group Re-calculation)
 app.post('/activity/:id/update-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id, newGameCount, newAmount, selectedUsers } = req.body;
@@ -274,25 +307,24 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
         const oldTrans = oldTransRes.rows[0];
         if (!oldTrans) return res.redirect(`/activity/${activityId}/history`);
 
-        // A. Pickleball Re-grouping
         if (selectedUsers) {
+            // Pickleball Modification
             let userIds = Array.isArray(selectedUsers) ? selectedUsers : [selectedUsers];
             const recordDate = new Date(oldTrans.date).toISOString();
             
-            // Find all siblings
             const siblingsRes = await query(`
                 SELECT * FROM transactions 
                 WHERE activity_id = $1 AND description = $2 AND date = $3`, 
                 [activityId, oldTrans.description, recordDate]
             );
             
-            // Revert & Delete all old
+            // Wipe
             for (const t of siblingsRes.rows) {
                 await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(t.amount), t.user_id]);
                 await query("DELETE FROM transactions WHERE id = $1", [t.id]);
             }
 
-            // Calculate new cost
+            // Recreate
             let totalCost = 0;
             if (newAmount) {
                 totalCost = parseFloat(newAmount);
@@ -301,7 +333,6 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
                 totalCost = match ? parseFloat(match[1]) : Math.abs(parseFloat(oldTrans.amount) * siblingsRes.rows.length);
             }
 
-            // Create new records
             if (userIds.length > 0 && totalCost > 0) {
                 const perHeadCost = totalCost / userIds.length;
                 const sameDate = oldTrans.date; 
@@ -313,9 +344,8 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
                 }
             }
 
-        } 
-        // B. Standard Update
-        else {
+        } else {
+            // Normal Update
             await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(oldTrans.amount), oldTrans.user_id]);
 
             let finalAmount = 0;
@@ -347,7 +377,7 @@ app.post('/activity/:id/update-transaction', async (req, res) => {
     }
 });
 
-// 12. Delete Transaction (Updated: Sibling recalculation)
+// 14. Delete Transaction (Sibling Re-calculation)
 app.post('/activity/:id/delete-transaction', async (req, res) => {
     const activityId = req.params.id;
     const { id } = req.body;
