@@ -97,12 +97,12 @@
                     <div class="mb-3">
                         <label class="form-label" data-i18n="label_type">計費模式</label>
                         <select name="type" class="form-select" id="activityType" onchange="toggleCostInput()">
-                            <option value="split" data-i18n="opt_split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
-                            <option value="bowling" selected data-i18n="opt_bowling">保齡球 (按局數計 x 單價)</option>
+                            <option value="split" data-i18n="opt_split">輸入總數 ÷ 人頭</option>
+                            <option value="bowling" selected data-i18n="opt_bowling">按局數計 x 單價</option>
                         </select>
                     </div>
                     <div class="mb-3" id="costContainer">
-                        <label class="form-label" data-i18n="label_default_cost">預設每局金額 (只適用於保齡)</label>
+                        <label class="form-label" data-i18n="label_default_cost">預設每局金額</label>
                         <input type="number" step="0.01" name="cost" class="form-control" value="5.65">
                     </div>
                     <button class="btn btn-primary w-100 fw-bold" data-i18n="btn_create_submit">立即建立</button>
@@ -136,9 +136,9 @@
             new_activity_title: "新活動資料",
             label_name: "活動名稱",
             label_type: "計費模式",
-            opt_split: "Pickleball / 食飯 (輸入總數 ÷ 人頭)",
-            opt_bowling: "保齡球 (按局數計 x 單價)",
-            label_default_cost: "預設每局金額 (只適用於保齡)",
+            opt_split: "輸入總數 ÷ 人頭",
+            opt_bowling: "按局數計 x 單價",
+            label_default_cost: "預設每局金額",
             btn_create_submit: "立即建立"
         },
         en: {
@@ -151,9 +151,9 @@
             new_activity_title: "Activity Info",
             label_name: "Activity Name",
             label_type: "Billing Type",
-            opt_split: "Pickleball / Split Bill (Total ÷ People)",
-            opt_bowling: "Bowling (Games x Cost)",
-            label_default_cost: "Default Cost Per Game (Bowling only)",
+            opt_split: "Total ÷ People",
+            opt_bowling: "Games x Cost",
+            label_default_cost: "Default Cost Per Game",
             btn_create_submit: "Create Now"
         }
     };
