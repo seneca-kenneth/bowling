@@ -1,0 +1,13 @@
+version: '3'
+services:
+  bowling-app:
+    image: node:18-alpine
+    container_name: bowling-pool-app
+    restart: unless-stopped
+    working_dir: /app
+    volumes:
+      - ./:/app
+      - ./data:/app/data
+    ports:
+      - "3060:3000"
+    command: sh -c "npm install && node server.js"

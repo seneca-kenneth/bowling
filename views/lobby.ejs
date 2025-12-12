@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>記數簿 Lobby</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-light">
+<div class="container py-5">
+    <h1 class="text-center mb-4">📂 我的記數簿</h1>
+    
+    <div class="row g-3 justify-content-center">
+        <% if (activities.length === 0) { %>
+            <div class="col-12 text-center text-muted">
+                暫時未有活動，請在下方建立一個！
+            </div>
+        <% } %>
+
+        <% activities.forEach(act => { %>
+            <div class="col-12 col-md-6 col-lg-4">
+                <a href="/activity/<%= act.id %>" class="text-decoration-none">
+                    <div class="card shadow-sm hover-shadow h-100">
+                        <div class="card-body text-center">
+                            <h3 class="card-title text-primary"><%= act.name %></h3>
+                            <p class="text-muted mb-0">每局: $<%= parseFloat(act.cost_per_game) %></p>
+                        </div>
+                    </div>
+                </a>
+            </div>
+        <% }) %>
+    </div>
+
+    <hr class="my-5">
+
+    <div class="card mx-auto" style="max-width: 500px;">
+        <div class="card-body">
+            <h5 class="card-title text-center">➕ 建立新活動</h5>
+            <form action="/create-activity" method="POST">
+                <div class="mb-3">
+                    <label class="form-label">活動名稱 (例如: 星期五保齡)</label>
+                    <input type="text" name="name" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">預設每局金額 $</label>
+                    <input type="number" step="0.1" name="cost" class="form-control" placeholder="5.6">
+                </div>
+                <button class="btn btn-success w-100">建立</button>
+            </form>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <small><a href="/reset-db" class="text-danger" onclick="return confirm('確定重置所有資料？')">重置資料庫 (Danger Zone)</a></small>
+    </div>
+</div>
+</body>
+</html>
