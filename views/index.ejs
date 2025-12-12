@@ -15,19 +15,34 @@
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
         
-        .option-card { background-color: white; border: 1px solid #388697; transition: all 0.2s; position: relative; }
+        /* 🔥 UPDATE: 固定高度 Card */
+        .option-card { 
+            background-color: white; 
+            border: 1px solid #388697; 
+            transition: all 0.2s; 
+            height: 170px; /* 固定高度，防止跳動 */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between; /* 上下分佈均勻 */
+            align-items: center;
+        }
+        
         .btn-check:checked + .option-card { background-color: #388697; }
         .btn-check:checked + .option-card .user-name { color: white !important; }
         .btn-check:checked + .option-card .guest-label { color: white !important; }
         
         .balance-box { background-color: #e9ecef; border-radius: 8px; padding: 2px 8px; width: 100%; text-align: center; }
+        .guest-btn { width: 25px; height: 25px; padding: 0; line-height: 23px; border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold; }
         
-        /* 訪客按鈕樣式 */
-        .guest-btn { 
-            width: 25px; height: 25px; padding: 0; line-height: 23px; 
-            border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold;
+        /* 🔥 UPDATE: 預留金額顯示位置 */
+        .split-info {
+            height: 24px; /* 固定高度 */
+            visibility: hidden; /* 預設隱形 (霸位)，唔係消失 */
+            font-weight: bold;
+            font-size: 0.9rem;
+            color: white;
         }
-        
+
         body { padding-bottom: 80px; background-color: #f8f9fa; margin: 0; padding-top: 0; }
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; }
         .user-card { transition: all 0.2s; border: 1px solid #eee; }
@@ -78,6 +93,7 @@
 </nav>
 
 <div class="container">
+    
     <div class="collapse mb-3 <%= keepOpen ? 'show' : '' %>" id="settingsBox">
         <div class="card card-body bg-light border-primary shadow-sm">
             <h6 class="fw-bold text-primary">🔧 <span data-i18n="settings_title">設定</span></h6>
@@ -166,6 +182,14 @@
                            class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
                     <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
+                <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                    <span class="small fw-bold text-muted">👥 <span data-i18n="label_guests">訪客/Guest</span></span>
+                    <div class="input-group" style="width: 140px;">
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeGuest(-1)">-</button>
+                        <input type="text" name="guestCount" id="guestInput" class="form-control text-center fw-bold" value="0" readonly>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeGuest(1)">+</button>
+                    </div>
+                </div>
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="small text-muted"><span data-i18n="txt_select_players">揀選有份玩的人</span> (<span id="splitCount">0</span>)</span>
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAll()" data-i18n="btn_toggle_all">全選 / 清除</button>
@@ -177,8 +201,8 @@
                     <div class="col-6">
                         <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>" onchange="updateSplit()">
                         
-                        <label class="option-card w-100 p-2 h-100 d-flex flex-column justify-content-center align-items-center shadow-sm rounded text-primary" for="user-<%= user.id %>">
-                            <span class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></span>
+                        <label class="option-card w-100 p-2 shadow-sm rounded text-primary" for="user-<%= user.id %>">
+                            <div class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></div>
                             
                             <div class="balance-box mt-2">
                                 <span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
@@ -186,15 +210,14 @@
                                 </span>
                             </div>
 
-                            <div class="d-flex align-items-center gap-2 mt-2" onclick="event.preventDefault()">
+                            <div class="d-flex justify-content-center align-items-center gap-2 mt-2" onclick="event.preventDefault()">
                                 <button type="button" class="guest-btn" onclick="updateGuest('<%= user.id %>', -1)">-</button>
                                 <span class="small text-muted fw-bold guest-label">👤+<span id="guest-count-<%= user.id %>">0</span></span>
                                 <button type="button" class="guest-btn" onclick="updateGuest('<%= user.id %>', 1)">+</button>
-                                
                                 <input type="hidden" name="guests[uid_<%= user.id %>]" id="guest-input-<%= user.id %>" value="0">
                             </div>
 
-                            <div class="split-info mt-1 text-white fw-bold small" id="split-info-<%= user.id %>" style="display: none;">-$0.0</div>
+                            <div class="split-info mt-1 w-100 text-center" id="split-info-<%= user.id %>">-$0.0</div>
                         </label>
                     </div>
                 <% }) %>
@@ -230,7 +253,8 @@
             label_total_cost: "是次總數 ($)",
             txt_select_players: "揀選有份玩的人",
             btn_toggle_all: "全選 / 清除",
-            placeholder_new_user: "新會員名"
+            placeholder_new_user: "新會員名",
+            label_guests: "訪客/Guest"
         },
         en: {
             menu_members: "Members",
@@ -255,7 +279,8 @@
             label_total_cost: "Total Amount ($)",
             txt_select_players: "Select Players",
             btn_toggle_all: "Select/Clear All",
-            placeholder_new_user: "New Name"
+            placeholder_new_user: "New Name",
+            label_guests: "Guests"
         }
     };
 
@@ -282,7 +307,16 @@
 
     applyLanguage();
 
-    // 🔥 UPDATE: 獨立更新每個 User 嘅 Guest
+    function changeGuest(delta) {
+        const input = document.getElementById('guestInput');
+        let val = parseInt(input.value) || 0;
+        val += delta;
+        if (val < 0) val = 0;
+        input.value = val;
+        updateSplit();
+    }
+
+    // Individual Guest Update
     function updateGuest(userId, delta) {
         const input = document.getElementById('guest-input-' + userId);
         const display = document.getElementById('guest-count-' + userId);
@@ -295,11 +329,9 @@
         input.value = val;
         display.innerText = val;
 
-        // 如果加咗 guest，自動剔選該用戶
         if (val > 0 && !checkbox.checked) {
             checkbox.checked = true;
         }
-        
         updateSplit();
     }
 
@@ -330,41 +362,46 @@
         updateSplit(); 
     }
 
-    // 🔥 UPDATE: 加權計算
     function updateSplit() {
         const totalInput = document.getElementById('totalCostInput');
         if (!totalInput) return; 
 
         const checkboxes = document.querySelectorAll('.user-checkbox');
         const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
+        const guestInput = document.getElementById('guestInput');
+        const generalGuestCount = parseInt(guestInput.value) || 0;
         
         let totalCost = parseFloat(totalInput.value) || 0;
         
-        // 1. 計算總份數 (Head Count)
-        let totalHeads = 0;
+        // Count Total Heads (Members + Individual Guests + General Guests)
+        let totalHeads = generalGuestCount;
+        let totalGuests = generalGuestCount;
         
         checkboxes.forEach(cb => {
             if (cb.checked) {
-                // 每個選中的人至少佔 1 份
                 let myHeads = 1;
-                // 加埋佢帶嘅 guest
                 const guestVal = parseInt(document.getElementById('guest-input-' + cb.value).value) || 0;
                 myHeads += guestVal;
                 totalHeads += myHeads;
+                totalGuests += guestVal;
             }
         });
 
-        // 2. 顯示選中人數 (這裡指 Account 數)
+        // Show Count
         const countSpan = document.getElementById('splitCount');
-        if (countSpan) countSpan.innerText = checkedBoxes.length;
+        if (countSpan) {
+            if (totalGuests > 0) {
+                countSpan.innerText = `${checkedBoxes.length} + ${totalGuests} Guest`;
+            } else {
+                countSpan.innerText = checkedBoxes.length;
+            }
+        }
 
-        // 3. 計算單價
         let costPerHead = 0;
         if (totalHeads > 0) {
             costPerHead = totalCost / totalHeads;
         }
 
-        // 4. 更新每個人的扣數
         checkboxes.forEach(cb => {
             const infoDiv = document.getElementById('split-info-' + cb.value);
             if (cb.checked) {
@@ -375,9 +412,9 @@
                 if(guestVal > 0) {
                     infoDiv.innerText += ` (1+${guestVal})`;
                 }
-                infoDiv.style.display = 'block';
+                infoDiv.style.visibility = 'visible'; // 🔥 UPDATE
             } else {
-                infoDiv.style.display = 'none';
+                infoDiv.style.visibility = 'hidden'; // 🔥 UPDATE
             }
         });
     }
