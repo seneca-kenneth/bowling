@@ -15,15 +15,15 @@
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
         
-        /* 🔥 UPDATE: 固定高度 Card */
+        /* Pickleball Card Style */
         .option-card { 
             background-color: white; 
             border: 1px solid #388697; 
             transition: all 0.2s; 
-            height: 170px; /* 固定高度，防止跳動 */
+            height: 180px; /* 稍微加高少少以防迫夾 */
             display: flex;
             flex-direction: column;
-            justify-content: space-between; /* 上下分佈均勻 */
+            justify-content: space-between; 
             align-items: center;
         }
         
@@ -31,15 +31,27 @@
         .btn-check:checked + .option-card .user-name { color: white !important; }
         .btn-check:checked + .option-card .guest-label { color: white !important; }
         
-        .balance-box { background-color: #e9ecef; border-radius: 8px; padding: 2px 8px; width: 100%; text-align: center; }
-        .guest-btn { width: 25px; height: 25px; padding: 0; line-height: 23px; border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold; }
+        /* 餘額盒仔 */
+        .balance-box {
+            background-color: #e9ecef;
+            border-radius: 8px;
+            padding: 2px 8px;
+            width: 100%;
+            text-align: center;
+        }
+
+        /* 訪客按鈕 */
+        .guest-btn { 
+            width: 25px; height: 25px; padding: 0; line-height: 23px; 
+            border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold;
+        }
         
-        /* 🔥 UPDATE: 預留金額顯示位置 */
+        /* 預留金額顯示位置 */
         .split-info {
-            height: 24px; /* 固定高度 */
-            visibility: hidden; /* 預設隱形 (霸位)，唔係消失 */
+            height: 24px;
+            visibility: hidden;
             font-weight: bold;
-            font-size: 0.9rem;
+            font-size: 1.1rem; /* 加大少少字 */
             color: white;
         }
 
@@ -51,6 +63,7 @@
         .neg-bal { color: #dc3545; }
         .pos-bal { color: #198754; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
+
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -93,7 +106,6 @@
 </nav>
 
 <div class="container">
-    
     <div class="collapse mb-3 <%= keepOpen ? 'show' : '' %>" id="settingsBox">
         <div class="card card-body bg-light border-primary shadow-sm">
             <h6 class="fw-bold text-primary">🔧 <span data-i18n="settings_title">設定</span></h6>
@@ -182,7 +194,8 @@
                            class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
                     <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
-                <div class="d-flex justify-content-between align-items-center mb-2 px-1">
+                
+                <div class="d-flex justify-content-between align-items-center mb-2 px-1 d-none">
                     <span class="small fw-bold text-muted">👥 <span data-i18n="label_guests">訪客/Guest</span></span>
                     <div class="input-group" style="width: 140px;">
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeGuest(-1)">-</button>
@@ -190,6 +203,7 @@
                         <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeGuest(1)">+</button>
                     </div>
                 </div>
+
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="small text-muted"><span data-i18n="txt_select_players">揀選有份玩的人</span> (<span id="splitCount">0</span>)</span>
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAll()" data-i18n="btn_toggle_all">全選 / 清除</button>
@@ -202,22 +216,22 @@
                         <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>" onchange="updateSplit()">
                         
                         <label class="option-card w-100 p-2 shadow-sm rounded text-primary" for="user-<%= user.id %>">
-                            <div class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></div>
+                            <span class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></span>
                             
-                            <div class="balance-box mt-2">
+                            <div class="balance-box mt-1">
                                 <span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
                                     $<%= user.balance.toFixed(1) %>
                                 </span>
                             </div>
 
-                            <div class="d-flex justify-content-center align-items-center gap-2 mt-2" onclick="event.preventDefault()">
+                            <div class="split-info mt-2 w-100 text-center" id="split-info-<%= user.id %>">-$0.0</div>
+
+                            <div class="d-flex justify-content-center align-items-center gap-2 mt-1" onclick="event.preventDefault()">
                                 <button type="button" class="guest-btn" onclick="updateGuest('<%= user.id %>', -1)">-</button>
                                 <span class="small text-muted fw-bold guest-label">👤+<span id="guest-count-<%= user.id %>">0</span></span>
                                 <button type="button" class="guest-btn" onclick="updateGuest('<%= user.id %>', 1)">+</button>
                                 <input type="hidden" name="guests[uid_<%= user.id %>]" id="guest-input-<%= user.id %>" value="0">
                             </div>
-
-                            <div class="split-info mt-1 w-100 text-center" id="split-info-<%= user.id %>">-$0.0</div>
                         </label>
                     </div>
                 <% }) %>
@@ -307,8 +321,10 @@
 
     applyLanguage();
 
+    // Global Guest Counter (Optional now)
     function changeGuest(delta) {
         const input = document.getElementById('guestInput');
+        if(!input) return;
         let val = parseInt(input.value) || 0;
         val += delta;
         if (val < 0) val = 0;
@@ -369,11 +385,9 @@
         const checkboxes = document.querySelectorAll('.user-checkbox');
         const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
         const guestInput = document.getElementById('guestInput');
-        const generalGuestCount = parseInt(guestInput.value) || 0;
+        const generalGuestCount = guestInput ? (parseInt(guestInput.value) || 0) : 0;
         
         let totalCost = parseFloat(totalInput.value) || 0;
-        
-        // Count Total Heads (Members + Individual Guests + General Guests)
         let totalHeads = generalGuestCount;
         let totalGuests = generalGuestCount;
         
@@ -387,7 +401,6 @@
             }
         });
 
-        // Show Count
         const countSpan = document.getElementById('splitCount');
         if (countSpan) {
             if (totalGuests > 0) {
@@ -412,9 +425,9 @@
                 if(guestVal > 0) {
                     infoDiv.innerText += ` (1+${guestVal})`;
                 }
-                infoDiv.style.visibility = 'visible'; // 🔥 UPDATE
+                infoDiv.style.visibility = 'visible';
             } else {
-                infoDiv.style.visibility = 'hidden'; // 🔥 UPDATE
+                infoDiv.style.visibility = 'hidden';
             }
         });
     }
