@@ -53,7 +53,7 @@
                     <li><hr class="dropdown-divider"></li>
                     <li>
                         <button class="dropdown-item text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#settingsBox">
-                            🔧 <span data-i18n="menu_settings">設定</span>
+                            💰 <span data-i18n="menu_settings">設定</span>
                         </button>
                     </li>
                 </ul>
@@ -99,12 +99,7 @@
                 </div>
             </form>
             
-            <hr>
-            <form action="/activity/<%= activity.id %>/add-user" method="POST" class="d-flex gap-2">
-                <input type="text" name="name" class="form-control" id="inputNewUser" placeholder="新會員名">
-                <button class="btn btn-outline-primary" data-i18n="btn_add_user">加人</button>
-            </form>
-        </div>
+            </div>
     </div>
 
     <% if (alertUsers.length > 0) { %>

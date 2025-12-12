@@ -176,13 +176,14 @@ app.post('/activity/:id/deposit', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 6. 加人
+// 6. 加人 (已修改：完成後返回 Users 頁面)
 app.post('/activity/:id/add-user', async (req, res) => {
     const activityId = req.params.id;
     if(req.body.name) {
         await query("INSERT INTO users (activity_id, name, balance) VALUES ($1, $2, 0)", [activityId, req.body.name]);
     }
-    res.redirect(`/activity/${activityId}?open=true`);
+    // 🔥 UPDATE: 改為返回會員頁
+    res.redirect(`/activity/${activityId}/users`);
 });
 
 // 7. 更新設定 (已升級：支援改名)
