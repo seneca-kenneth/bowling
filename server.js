@@ -1,7 +1,7 @@
 const express = require('express');
 const { Pool } = require('pg');
 const bodyParser = require('body-parser');
-const path = require('path'); // 引入 path 模組 (修復 Vercel 路徑問題)
+const path = require('path');
 const app = express();
 
 // 連接 Vercel Postgres
@@ -10,36 +10,36 @@ const pool = new Pool({
     ssl: { rejectUnauthorized: false }
 });
 
-// 🔥 關鍵修復：明確告訴 Express views 資料夾在哪裡 🔥
+// 設定 Views
 app.set('views', path.join(__dirname, 'views'));
 app.set('view engine', 'ejs');
 
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public'))); // 同樣修復 public 資料夾路徑
+app.use(express.static(path.join(__dirname, 'public')));
 
-// 輔助函數：執行 SQL Query
+// 輔助函數
 async function query(text, params) {
     return await pool.query(text, params);
 }
 
-// 🔥 重置資料庫路由 (初始化 Table 結構)
+// 🔥 重置資料庫 (更新了 activities 表結構，支援 type)
 app.get('/reset-db', async (req, res) => {
     try {
         await query("DROP TABLE IF EXISTS transactions");
         await query("DROP TABLE IF EXISTS users");
-        await query("DROP TABLE IF EXISTS settings"); 
-        await query("DROP TABLE IF EXISTS activities");
+        await query("DROP TABLE IF EXISTS activities"); // Cascade delete setting might vary, drop order matters
 
-        // 1. 活動表
+        // 1. 活動表 (新增 type 欄位)
         await query(`CREATE TABLE activities (
             id SERIAL PRIMARY KEY, 
             name TEXT NOT NULL,
+            type TEXT DEFAULT 'bowling', -- 'bowling' or 'split'
             cost_per_game NUMERIC DEFAULT 0,
             alert_threshold NUMERIC DEFAULT 200,
             created_at TIMESTAMP DEFAULT NOW()
         )`);
 
-        // 2. 用戶表 (關聯活動)
+        // 2. 用戶表
         await query(`CREATE TABLE users (
             id SERIAL PRIMARY KEY, 
             activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
@@ -47,7 +47,7 @@ app.get('/reset-db', async (req, res) => {
             balance NUMERIC DEFAULT 0
         )`);
 
-        // 3. 交易表 (關聯活動)
+        // 3. 交易表
         await query(`CREATE TABLE transactions (
             id SERIAL PRIMARY KEY, 
             activity_id INTEGER REFERENCES activities(id) ON DELETE CASCADE,
@@ -58,35 +58,36 @@ app.get('/reset-db', async (req, res) => {
             date TIMESTAMP
         )`);
 
-        res.send("Database has been reset and upgraded for Multi-Activity support. <a href='/'>Go Home</a>");
+        res.send("Database has been reset with 'Type' support. <a href='/'>Go Home</a>");
     } catch (err) {
         console.error(err);
         res.status(500).send("Error resetting DB: " + err.message);
     }
 });
 
-// 1. 大堂 (Lobby) - 列出所有活動
+// 1. 大堂 (Lobby)
 app.get('/', async (req, res) => {
     try {
         const result = await query("SELECT * FROM activities ORDER BY created_at DESC");
         res.render('lobby', { activities: result.rows });
     } catch (err) {
-        // 如果表不存在 (例如第一次用)，提示去 reset
         if (err.code === '42P01') return res.redirect('/reset-db');
         res.status(500).send("DB Error: " + err.message);
     }
 });
 
-// 2. 創建新活動
+// 2. 創建新活動 (支援 type)
 app.post('/create-activity', async (req, res) => {
-    const { name, cost } = req.body;
+    const { name, cost, type } = req.body;
+    const activityType = type || 'bowling';
     if (name) {
-        await query("INSERT INTO activities (name, cost_per_game) VALUES ($1, $2)", [name, parseFloat(cost) || 0]);
+        await query("INSERT INTO activities (name, cost_per_game, type) VALUES ($1, $2, $3)", 
+            [name, parseFloat(cost) || 0, activityType]);
     }
     res.redirect('/');
 });
 
-// 3. 進入特定活動 (Dashboard)
+// 3. 進入特定活動
 app.get('/activity/:id', async (req, res) => {
     const activityId = req.params.id;
     try {
@@ -110,30 +111,52 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 4. 記數 (Record)
+// 4. 記數邏輯 (核心修改：分開保齡與夾錢模式)
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
-    const { games } = req.body; 
-    
-    if (!games) return res.redirect(`/activity/${activityId}`);
+    const { games, selectedUsers, totalCost } = req.body; 
 
     try {
-        const actRes = await query("SELECT cost_per_game FROM activities WHERE id = $1", [activityId]);
-        const costPerGame = parseFloat(actRes.rows[0].cost_per_game);
+        const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
+        const activity = actRes.rows[0];
 
-        for (const [key, countStr] of Object.entries(games)) {
-            const userId = parseInt(key.replace('uid_', '')); 
-            const gameCount = parseInt(countStr);
+        // --- 模式 A: 保齡球 (計局數) ---
+        if (activity.type === 'bowling') {
+            if (!games) return res.redirect(`/activity/${activityId}`);
+            const costPerGame = parseFloat(activity.cost_per_game);
 
-            if (!isNaN(gameCount) && gameCount > 0 && !isNaN(userId)) {
-                const cost = gameCount * costPerGame;
+            for (const [key, countStr] of Object.entries(games)) {
+                const userId = parseInt(key.replace('uid_', '')); 
+                const gameCount = parseInt(countStr);
+
+                if (!isNaN(gameCount) && gameCount > 0) {
+                    const cost = gameCount * costPerGame;
+                    await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, NOW())", 
+                        [activityId, userId, -cost, `打波 ${gameCount} 局`]);
+                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [cost, userId]);
+                }
+            }
+        } 
+        // --- 模式 B: Pickleball / 夾錢 (AA制) ---
+        else {
+            let users = [];
+            // 處理 checkbox: 如果只揀一個，佢係 string；如果揀多個，佢係 array
+            if (Array.isArray(selectedUsers)) users = selectedUsers;
+            else if (selectedUsers) users = [selectedUsers];
+
+            const cost = parseFloat(totalCost);
+            
+            if (users.length > 0 && cost > 0) {
+                const perHeadCost = cost / users.length;
                 
-                await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, NOW())", 
-                    [activityId, userId, -cost, `打波 ${gameCount} 局`]);
-                
-                await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [cost, userId]);
+                for (const userId of users) {
+                    await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, NOW())", 
+                        [activityId, userId, -perHeadCost, `夾場租 (共$${cost})`]);
+                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [perHeadCost, userId]);
+                }
             }
         }
+
         res.redirect(`/activity/${activityId}`);
     } catch (err) {
         console.error(err);
@@ -162,7 +185,7 @@ app.post('/activity/:id/add-user', async (req, res) => {
     res.redirect(`/activity/${activityId}?open=true`);
 });
 
-// 7. 更新設定 (價錢 & 提醒)
+// 7. 更新設定
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
     const { cost, threshold } = req.body;
@@ -171,7 +194,7 @@ app.post('/activity/:id/settings', async (req, res) => {
     res.redirect(`/activity/${activityId}?open=true`);
 });
 
-// 8. 歷史紀錄頁
+// 8. 歷史紀錄
 app.get('/activity/:id/history', async (req, res) => {
     const activityId = req.params.id;
     try {
@@ -217,26 +240,31 @@ app.get('/activity/:id/users', async (req, res) => {
     }
 });
 
-// 10. 修改 Transaction
+// 10. 修改 Transaction (只支援 Expense 修正金額，Pickleball 模式建議刪除重開)
 app.post('/activity/:id/update-transaction', async (req, res) => {
     const activityId = req.params.id;
-    const { id, newGameCount } = req.body;
+    const { id, newGameCount } = req.body; // 注意：這裡仍然假設是改局數，Pickleball 模式下建議直接刪除
     const games = parseInt(newGameCount);
 
     try {
         const oldTransRes = await query("SELECT * FROM transactions WHERE id = $1", [id]);
         const oldTrans = oldTransRes.rows[0];
+        
+        // 簡單起見，如果係 pickleball 相關嘅數，暫時當局數處理會錯，所以建議 History page 限制
         if (!oldTrans || oldTrans.type !== 'expense') return res.redirect(`/activity/${activityId}/history`);
 
         const actRes = await query("SELECT cost_per_game FROM activities WHERE id = $1", [activityId]);
+        // 若 cost_per_game 為 0 (Pickleball)，這裡修改金額會有問題，所以介面最好引導刪除
         const costPerGame = parseFloat(actRes.rows[0].cost_per_game);
         
-        const newAmount = -(games * costPerGame); 
-        const newDesc = `打波 ${games} 局`;
-        const diff = newAmount - parseFloat(oldTrans.amount);
+        if (costPerGame > 0) {
+             const newAmount = -(games * costPerGame); 
+             const newDesc = `打波 ${games} 局`;
+             const diff = newAmount - parseFloat(oldTrans.amount);
 
-        await query("UPDATE users SET balance = balance + $1 WHERE id = $2", [diff, oldTrans.user_id]);
-        await query("UPDATE transactions SET amount = $1, description = $2 WHERE id = $3", [newAmount, newDesc, id]);
+             await query("UPDATE users SET balance = balance + $1 WHERE id = $2", [diff, oldTrans.user_id]);
+             await query("UPDATE transactions SET amount = $1, description = $2 WHERE id = $3", [newAmount, newDesc, id]);
+        }
         
         res.redirect(`/activity/${activityId}/history`);
     } catch (err) {
@@ -274,8 +302,5 @@ app.post('/activity/:id/delete-user', async (req, res) => {
     res.redirect(`/activity/${req.params.id}/users`);
 });
 
-// 本地測試用 (Vercel 不需要 listen，但保留也無妨)
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`App running on port ${PORT}`));
-
-module.exports = app;

@@ -22,7 +22,10 @@
                     <div class="card shadow-sm hover-shadow h-100">
                         <div class="card-body text-center">
                             <h3 class="card-title text-primary"><%= act.name %></h3>
-                            <p class="text-muted mb-0">每局: $<%= parseFloat(act.cost_per_game) %></p>
+                            <p class="badge bg-secondary"><%= act.type === 'split' ? '夾錢模式' : '計局模式' %></p>
+                            <% if(act.type !== 'split') { %>
+                                <p class="text-muted mb-0">每局: $<%= parseFloat(act.cost_per_game) %></p>
+                            <% } %>
                         </div>
                     </div>
                 </a>
@@ -37,11 +40,20 @@
             <h5 class="card-title text-center">➕ 建立新活動</h5>
             <form action="/create-activity" method="POST">
                 <div class="mb-3">
-                    <label class="form-label">活動名稱 (例如: 星期五保齡)</label>
-                    <input type="text" name="name" class="form-control" required>
+                    <label class="form-label">活動名稱</label>
+                    <input type="text" name="name" class="form-control" placeholder="例如: 星期五保齡 / Pickleball" required>
                 </div>
+                
                 <div class="mb-3">
-                    <label class="form-label">預設每局金額 $</label>
+                    <label class="form-label">計費模式</label>
+                    <select name="type" class="form-select">
+                        <option value="bowling">保齡球 (按局數計 x 單價)</option>
+                        <option value="split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
+                    </select>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">預設每局金額 (只適用於保齡)</label>
                     <input type="number" step="0.1" name="cost" class="form-control" placeholder="5.6">
                 </div>
                 <button class="btn btn-success w-100">建立</button>
@@ -50,7 +62,7 @@
     </div>
     
     <div class="text-center mt-4">
-        <small><a href="/reset-db" class="text-danger" onclick="return confirm('確定重置所有資料？')">重置資料庫 (Danger Zone)</a></small>
+        <small><a href="/reset-db" class="text-danger" onclick="return confirm('確定重置所有資料？所有舊紀錄將會消失！')">重置資料庫 (Danger Zone)</a></small>
     </div>
 </div>
 </body>
