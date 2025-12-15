@@ -104,41 +104,48 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 5. Record Logic (🔥 UPDATE: Bowling Guest Logic)
+// 5. Record Logic (🔥 FIX: 增強錯誤檢查，防止 NaN 導致 Server Error)
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
-    const { games, guestGames, selectedUsers, totalCost, guests } = req.body; // 🔥 接收 guestGames
+    const { games, guestGames, selectedUsers, totalCost, guests } = req.body; 
     
     const recordTime = new Date(); 
-    const cost = parseFloat(totalCost);
+    // 🔥 加強轉換：如果出錯設為 0
+    const cost = parseFloat(totalCost) || 0; 
 
     try {
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
         const activity = actRes.rows[0];
 
         if (activity.type === 'bowling') {
-            if (!games || cost <= 0) return res.redirect(`/activity/${activityId}`);
+            // 🔥 關鍵修正：確保 cost 係有效數字且大於 0，否則彈返轉頭
+            if (!games || isNaN(cost) || cost <= 0) {
+                console.log("Error: Invalid cost or games input"); // Server Log 方便除錯
+                return res.redirect(`/activity/${activityId}`);
+            }
             
-            // 1. 計算總局數 (會員 + 訪客)
+            // 1. 計算總局數
             let totalGamesPlayed = 0;
             let userGameMap = {};
 
             // 處理會員局數
-            for (const [key, countStr] of Object.entries(games)) {
-                const count = parseInt(countStr);
-                if (!isNaN(count) && count > 0) {
-                    const userId = parseInt(key.replace('uid_', ''));
-                    if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
-                    userGameMap[userId].member = count;
-                    totalGamesPlayed += count;
+            if (games) {
+                for (const [key, countStr] of Object.entries(games)) {
+                    const count = parseInt(countStr) || 0; // 防止 NaN
+                    if (count > 0) {
+                        const userId = parseInt(key.replace('uid_', ''));
+                        if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
+                        userGameMap[userId].member = count;
+                        totalGamesPlayed += count;
+                    }
                 }
             }
 
-            // 處理訪客局數 (如果有)
+            // 處理訪客局數
             if (guestGames) {
                 for (const [key, countStr] of Object.entries(guestGames)) {
-                    const count = parseInt(countStr);
-                    if (!isNaN(count) && count > 0) {
+                    const count = parseInt(countStr) || 0; // 防止 NaN
+                    if (count > 0) {
                         const userId = parseInt(key.replace('uid_', ''));
                         if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
                         userGameMap[userId].guest = count;
@@ -163,7 +170,6 @@ app.post('/activity/:id/record', async (req, res) => {
                         }
                         desc += ` (共$${cost.toFixed(1)})`;
 
-                        // 如果只有 guest 打 (member 0)，照樣記錄 $0，方便 history 睇返
                         await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
                             [activityId, userId, -memberCost, desc, recordTime]);
                         
@@ -175,18 +181,21 @@ app.post('/activity/:id/record', async (req, res) => {
             }
 
         } else {
-            // ... (Pickleball logic remains same) ...
+            // --- Pickleball Mode (Weighted) ---
             let userIds = [];
             if (Array.isArray(selectedUsers)) userIds = selectedUsers;
             else if (selectedUsers) userIds = [selectedUsers];
             
+            // 🔥 同樣加強檢查
+            if (isNaN(cost) || cost <= 0) return res.redirect(`/activity/${activityId}`);
+
             let totalHeads = 0;
             let userHeadsMap = {};
 
             userIds.forEach(uid => {
                 let myGuest = 0;
                 if (guests && guests[`uid_${uid}`]) {
-                    myGuest = parseInt(guests[`uid_${uid}`]);
+                    myGuest = parseInt(guests[`uid_${uid}`]) || 0;
                 }
                 const myTotal = 1 + myGuest; 
                 userHeadsMap[uid] = myTotal;
@@ -214,8 +223,8 @@ app.post('/activity/:id/record', async (req, res) => {
 
         res.redirect(`/activity/${activityId}`);
     } catch (err) {
-        console.error(err);
-        res.redirect(`/activity/${activityId}`);
+        console.error("DB Error inside /record:", err); // 🔥 印出錯誤訊息到 Terminal
+        res.redirect(`/activity/${activityId}`); // 出錯都唔好死機，跳返轉頭
     }
 });
 
