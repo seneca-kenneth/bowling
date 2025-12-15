@@ -6,19 +6,16 @@
     <meta name="theme-color" content="#388697">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* 🔥 FIX: 解決拉頂見到白色底問題 */
+        html { background-color: #388697; } 
+        body { background-color: #f8f9fa; margin: 0; padding-top: 0; min-height: 100vh; }
+
         .bg-primary { background-color: #388697 !important; }
         .text-primary { color: #388697 !important; }
         .amount-pos { color: green; font-weight: bold; }
         .amount-neg { color: red; font-weight: bold; }
-        
-        /* 🔥 FIX: 強制去除 Body 邊距 */
-        body { background-color: #f8f9fa; margin: 0; padding-top: 0; }
-        
-        /* 🔥 FIX: Navbar 樣式 */
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
-        
         ::-webkit-scrollbar { display: none; }
-        html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-light">

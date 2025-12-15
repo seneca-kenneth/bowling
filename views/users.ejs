@@ -6,6 +6,10 @@
     <meta name="theme-color" content="#388697">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        /* 🔥 FIX: 解決拉頂見到白色底問題 */
+        html { background-color: #388697; } 
+        body { background-color: #f8f9fa; min-height: 100vh; margin: 0; padding-top: 0; padding-bottom: 100px; }
+
         .bg-primary { background-color: #388697 !important; }
         .text-primary { color: #388697 !important; }
         .btn-outline-primary { color: #388697; border-color: #388697; }
@@ -13,16 +17,11 @@
         .btn-outline-success { color: #198754; border-color: #198754; }
         .btn-outline-success:hover { background-color: #198754; color: white; }
         
-        /* 🔥 FIX: 強制去除 Body 邊距 */
-        body { padding-bottom: 100px; background-color: #f8f9fa; margin: 0; padding-top: 0; }
-        
-        /* 🔥 FIX: Navbar 樣式 */
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
         
         .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid #eee; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
         ::-webkit-scrollbar { display: none; }
-        html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
 </head>
 <body class="bg-light">
@@ -63,9 +62,9 @@
                             <td class="fw-bold"><%= user.name %></td>
                             <td class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %>">$<%= user.balance.toFixed(2) %></td>
                             <td class="text-end">
-                                <button class="btn btn-sm btn-outline-success btn-deposit" data-id="<%= user.id %>" data-name="<%= user.name %>">💰 <span data-i18n="btn_deposit">入錢</span></button>
-                                <button class="btn btn-sm btn-outline-primary btn-edit-user" data-id="<%= user.id %>" data-name="<%= user.name %>"><span data-i18n="btn_rename">改名</span></button>
-                                <button class="btn btn-sm btn-outline-danger btn-delete-user" data-id="<%= user.id %>" data-name="<%= user.name %>"><span data-i18n="btn_delete">刪除</span></button>
+                                <button class="btn btn-sm btn-outline-success btn-deposit" data-id="<%= user.id %>" data-name="<%= user.name %>">💰</button>
+                                <button class="btn btn-sm btn-outline-primary btn-edit-user" data-id="<%= user.id %>" data-name="<%= user.name %>">✏️</button>
+                                <button class="btn btn-sm btn-outline-danger btn-delete-user" data-id="<%= user.id %>" data-name="<%= user.name %>">❌</button>
                             </td>
                         </tr>
                     <% }) %>
