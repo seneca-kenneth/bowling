@@ -10,9 +10,11 @@
         .text-primary { color: #388697 !important; }
         .amount-pos { color: green; font-weight: bold; }
         .amount-neg { color: red; font-weight: bold; }
-        body { background-color: #f8f9fa; }
         
-        /* 🔥 FIX: Standard Navbar Height */
+        /* 🔥 FIX: 強制去除 Body 邊距 */
+        body { background-color: #f8f9fa; margin: 0; padding-top: 0; }
+        
+        /* 🔥 FIX: Navbar 樣式 */
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
         
         ::-webkit-scrollbar { display: none; }
@@ -36,7 +38,11 @@
         <div class="card-body p-0">
             <table class="table table-striped mb-0 text-center">
                 <thead class="table-light"><tr><th data-i18n="th_name">姓名</th><th data-i18n="th_balance">餘額</th></tr></thead>
-                <tbody><% users.forEach(user => { %><tr><td class="fw-bold"><%= user.name %></td><td class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %> fw-bold">$<%= user.balance.toFixed(1) %></td></tr><% }) %></tbody>
+                <tbody>
+                    <% users.forEach(user => { %>
+                        <tr><td class="fw-bold"><%= user.name %></td><td class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %> fw-bold">$<%= user.balance.toFixed(2) %></td></tr>
+                    <% }) %>
+                </tbody>
             </table>
         </div>
     </div>
@@ -49,7 +55,7 @@
                         <tr>
                             <td class="px-3"><div><strong><%= t.name || 'Unknown' %></strong></div><div class="text-muted" style="font-size: 0.8rem;"><%= t.date.substring(0, 10) %></div></td>
                             <td><%= t.description %> <% if(t.type === 'deposit') { %> <span class="badge bg-success" data-i18n="badge_deposit">入數</span> <% } %></td>
-                            <td class="text-end px-3 <%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>"><%= t.amount > 0 ? '+' : '' %><%= t.amount.toFixed(1) %></td>
+                            <td class="text-end px-3 <%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>"><%= t.amount > 0 ? '+' : '' %><%= t.amount.toFixed(2) %></td>
                         </tr>
                     <% }) %>
                 </tbody>
@@ -60,9 +66,16 @@
 </div>
 
 <script>
-    const translations = { zh: { title_balance: "會員餘額", th_name: "姓名", th_balance: "餘額", title_records: "最近紀錄 (20筆)", badge_deposit: "入數", footer_note: "此頁面僅供查閱，無法進行操作。" }, en: { title_balance: "Member Balance", th_name: "Name", th_balance: "Balance", title_records: "Recent Records (20)", badge_deposit: "Deposit", footer_note: "This page is read-only." } };
+    const translations = {
+        zh: { title_balance: "會員餘額", th_name: "姓名", th_balance: "餘額", title_records: "最近紀錄 (20筆)", badge_deposit: "入數", footer_note: "此頁面僅供查閱，無法進行操作。" },
+        en: { title_balance: "Member Balance", th_name: "Name", th_balance: "Balance", title_records: "Recent Records (20)", badge_deposit: "Deposit", footer_note: "This page is read-only." }
+    };
     let currentLang = localStorage.getItem('appLang') || 'zh';
-    function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG'; }
+    function applyLanguage() {
+        const langData = translations[currentLang];
+        document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; });
+        document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
+    }
     function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
 </script>

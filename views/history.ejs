@@ -15,7 +15,13 @@
         .table-text-small { font-size: 0.9rem; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
         .void-row { text-decoration: line-through; color: #adb5bd; }
+        
+        /* 🔥 FIX: 強制去除 Body 邊距，確保 Top Bar 頂到最上 */
+        body { margin: 0; padding-top: 0; background-color: #f8f9fa; }
+        
+        /* 🔥 FIX: Navbar 樣式 */
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
+        
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -196,12 +202,11 @@
     const editBowlingModal = new bootstrap.Modal(document.getElementById('editBowlingModal'));
 
     function handleEdit(timestamp, total, isBowling) {
-        // 🔥 FIX: 確保填入 Input 框的數值只有 2 位小數
         const formattedTotal = parseFloat(total).toFixed(2);
 
         if (isBowling) {
             document.getElementById('bowlingTimestamp').value = timestamp;
-            document.getElementById('bowlingTotalCost').value = formattedTotal; // 使用格式化後的數值
+            document.getElementById('bowlingTotalCost').value = formattedTotal;
             document.getElementById('bowlingGuestGames').value = '';
             document.querySelectorAll('[id^="user-game-"]').forEach(el => el.value = '');
 
@@ -219,7 +224,7 @@
                 });
         } else {
             document.getElementById('editGroupTimestamp').value = timestamp;
-            document.getElementById('editGroupTotal').value = formattedTotal; // 使用格式化後的數值
+            document.getElementById('editGroupTotal').value = formattedTotal;
             editGroupModal.show();
         }
     }
