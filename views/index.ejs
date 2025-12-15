@@ -7,8 +7,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        /* 🔥 FIX: 解決拉頂見到白色底問題 */
-        html { background-color: #388697; } 
+        /* 🔥 FIX: Mobile Overscroll Color */
+        html { background-color: #388697; }
         body { background-color: #f8f9fa; min-height: 100vh; margin: 0; padding-top: 0; padding-bottom: 80px; }
 
         .bg-primary { background-color: #388697 !important; }
@@ -41,23 +41,14 @@
 
 <nav class="navbar navbar-dark bg-primary mb-3 sticky-top">
     <div class="container-fluid position-relative">
-        <div class="d-flex align-items-center">
-            <a class="navbar-brand p-0 m-0" href="/">
-                <span class="fs-4">🏠</span>
-            </a>
-        </div>
-        <div class="position-absolute top-50 start-50 translate-middle w-50 text-center">
-            <div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div>
-        </div>
+        <div class="d-flex align-items-center"><a class="navbar-brand p-0 m-0" href="/"><span class="fs-4">🏠</span></a></div>
+        <div class="position-absolute top-50 start-50 translate-middle w-50 text-center"><div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div></div>
         <div class="d-flex align-items-center">
             <div class="dropdown">
                 <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 <span data-i18n="menu_members">會員管理</span></a></li>
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>/history">📜 <span data-i18n="menu_history">歷史紀錄</span></a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><a class="dropdown-item text-info" href="/activity/<%= activity.id %>/share" target="_blank">🔗 <span data-i18n="menu_share">分享連結 (只讀)</span></a></li>
-                    <li><button class="dropdown-item text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#settingsBox">💰 <span data-i18n="menu_settings">設定</span></button></li>
                     <li><hr class="dropdown-divider"></li>
                     <li><button class="dropdown-item" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button></li>
                 </ul>
@@ -71,10 +62,7 @@
         <div class="card card-body bg-light border-primary shadow-sm">
             <h6 class="fw-bold text-primary">🔧 <span data-i18n="settings_title">設定</span></h6>
             <form action="/activity/<%= activity.id %>/settings" method="POST" class="mb-3">
-                <div class="mb-2">
-                    <label class="small text-muted" data-i18n="label_activity_name">活動名稱</label>
-                    <input type="text" name="name" class="form-control fw-bold" value="<%= activity.name %>" required>
-                </div>
+                <div class="mb-2"><label class="small text-muted" data-i18n="label_activity_name">活動名稱</label><input type="text" name="name" class="form-control fw-bold" value="<%= activity.name %>" required></div>
                 <div class="row g-2 align-items-center">
                     <div class="col-12"><label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label><input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>"></div>
                     <div class="col-12 text-end mt-2"><button class="btn btn-sm btn-secondary w-100" data-i18n="btn_save_settings">保存設定</button></div>
@@ -88,9 +76,7 @@
     <% } %>
 
     <form action="/activity/<%= activity.id %>/record" method="POST" id="gameForm">
-        
         <% if (!activity.type || activity.type === 'bowling') { %>
-            
             <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
                 <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg">
@@ -103,26 +89,25 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="resetForm()" data-i18n="btn_reset">重置</button>
                 </div>
             </div>
-
             <div class="row g-2">
                 <% users.forEach(user => { %>
                     <div class="col-6 col-md-4">
                         <div class="bowling-card" id="card-<%= user.id %>">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="fw-bold fs-5 text-truncate" style="max-width: 60%;"><%= user.name %></div>
-                                <div class="balance-num small <%= user.balance < 0 ? 'neg-bal' : 'pos-bal' %>">$<%= user.balance.toFixed(2) %></div>
+                                <% if (user.is_pool_member) { %>
+                                    <div class="balance-num small <%= user.balance < 0 ? 'neg-bal' : 'pos-bal' %>">$<%= user.balance.toFixed(2) %></div>
+                                <% } else { %>
+                                    <div class="balance-num small text-muted">Cash Only</div>
+                                <% } %>
                             </div>
                             <div class="input-group">
-                                <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" 
-                                       name="games[uid_<%= user.id %>]" 
-                                       class="form-control text-center fw-bold game-input" 
-                                       placeholder="0" data-userid="<%= user.id %>">
+                                <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" name="games[uid_<%= user.id %>]" class="form-control text-center fw-bold game-input" placeholder="0" data-userid="<%= user.id %>">
                                 <span class="input-group-text bg-light border-0 small text-muted">局</span>
                             </div>
                         </div>
                     </div>
                 <% }) %>
-
                 <div class="col-6 col-md-4">
                     <div class="guest-card" id="card-guest">
                         <div class="d-flex justify-content-between align-items-center mb-2">
@@ -130,25 +115,19 @@
                             <div class="balance-num small text-muted">Cash</div>
                         </div>
                         <div class="input-group">
-                            <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" 
-                                   name="guestGames" 
-                                   class="form-control text-center fw-bold game-input text-secondary" 
-                                   placeholder="0" data-userid="guest">
+                            <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" name="guestGames" class="form-control text-center fw-bold game-input text-secondary" placeholder="0" data-userid="guest">
                             <span class="input-group-text bg-light border-0 small text-muted">局</span>
                         </div>
                     </div>
                 </div>
-
             </div>
             <div style="height: 60px;"></div>
-
         <% } else { %>
             <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
                 <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg mb-2">
                     <span class="input-group-text bg-primary text-white border-0">$</span>
-                    <input type="number" step="0.01" name="totalCost" id="totalCostInput" 
-                           class="form-control fw-bold fs-4" value="45.20" required oninput="updateSplit()">
+                    <input type="number" step="0.01" name="totalCost" id="totalCostInput" class="form-control fw-bold fs-4" value="45.20" required oninput="updateSplit()">
                     <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
@@ -156,14 +135,19 @@
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAll()" data-i18n="btn_toggle_all">全選 / 清除</button>
                 </div>
             </div>
-
             <div class="row g-2">
                 <% users.forEach(user => { %>
                     <div class="col-6">
                         <input type="checkbox" class="btn-check user-checkbox" name="selectedUsers" value="<%= user.id %>" id="user-<%= user.id %>" onchange="updateSplit()">
                         <label class="option-card w-100 p-2 shadow-sm rounded text-primary" for="user-<%= user.id %>">
                             <span class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></span>
-                            <div class="balance-box mt-1"><span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">$<%= user.balance.toFixed(2) %></span></div>
+                            <div class="balance-box mt-1">
+                                <% if (user.is_pool_member) { %>
+                                    <span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">$<%= user.balance.toFixed(2) %></span>
+                                <% } else { %>
+                                    <span class="fs-6 fw-bold text-muted">Cash Only</span>
+                                <% } %>
+                            </div>
                             <div class="split-info mt-2 w-100 text-center" id="split-info-<%= user.id %>">-$0.00</div>
                             <div class="d-flex justify-content-center align-items-center gap-2 mt-1" onclick="event.preventDefault()">
                                 <button type="button" class="guest-btn" onclick="updateGuest('<%= user.id %>', -1)">-</button>
@@ -187,13 +171,10 @@
     function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG'; }
     function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
-
     function updateGuest(userId, delta) { const input = document.getElementById('guest-input-' + userId); const display = document.getElementById('guest-count-' + userId); const checkbox = document.getElementById('user-' + userId); let val = parseInt(input.value) || 0; val += delta; if (val < 0) val = 0; input.value = val; display.innerText = val; if (val > 0 && !checkbox.checked) checkbox.checked = true; updateSplit(); }
-
     const inputs = document.querySelectorAll('.game-input');
     const totalPeopleSpan = document.getElementById('totalPeople');
     const totalGamesSpan = document.getElementById('totalGames');
-
     if(inputs.length > 0) {
         function updateSummary() {
             let people = 0; let games = 0;
@@ -210,7 +191,6 @@
         }
         inputs.forEach(input => input.addEventListener('input', updateSummary));
     }
-
     function resetForm() { inputs.forEach(i => i.value = ''); if(totalPeopleSpan) updateSummary(); document.querySelectorAll('.bowling-card, .guest-card').forEach(c => c.classList.remove('active')); }
     function toggleAll() { const boxes = document.querySelectorAll('.user-checkbox'); const allChecked = Array.from(boxes).every(b => b.checked); boxes.forEach(b => b.checked = !allChecked); updateSplit(); }
     function updateSplit() {
