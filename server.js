@@ -19,7 +19,7 @@ async function query(text, params) {
     return await pool.query(text, params);
 }
 
-// 1. Reset DB
+// 1. Reset DB (🔥 UPDATE: Default Threshold = 0)
 app.get('/reset-db', async (req, res) => {
     try {
         await query("DROP TABLE IF EXISTS transactions");
@@ -31,7 +31,7 @@ app.get('/reset-db', async (req, res) => {
             name TEXT NOT NULL,
             type TEXT DEFAULT 'bowling',
             cost_per_game NUMERIC DEFAULT 0,
-            alert_threshold NUMERIC DEFAULT 200,
+            alert_threshold NUMERIC DEFAULT 0, 
             created_at TIMESTAMP DEFAULT NOW()
         )`);
 
@@ -71,11 +71,12 @@ app.get('/', async (req, res) => {
     }
 });
 
-// 3. Create Activity
+// 3. Create Activity (🔥 UPDATE: Default Threshold = 0)
 app.post('/create-activity', async (req, res) => {
     const { name, cost, type } = req.body;
     const activityType = type || 'bowling';
-    await query("INSERT INTO activities (name, cost_per_game, type) VALUES ($1, $2, $3)", 
+    // Default alert_threshold to 0 if not specified
+    await query("INSERT INTO activities (name, cost_per_game, type, alert_threshold) VALUES ($1, $2, $3, 0)", 
         [name, parseFloat(cost) || 0, activityType]);
     res.redirect('/');
 });
@@ -168,6 +169,7 @@ app.post('/activity/:id/record', async (req, res) => {
             }
 
         } else {
+            // Pickleball Mode
             let userIds = [];
             if (Array.isArray(selectedUsers)) userIds = selectedUsers;
             else if (selectedUsers) userIds = [selectedUsers];
@@ -218,12 +220,10 @@ app.post('/activity/:id/record', async (req, res) => {
     }
 });
 
-// 6. Deposit (🔥 UPDATE: Default 100 & Error Fix)
+// 6. Deposit
 app.post('/activity/:id/deposit', async (req, res) => {
     const activityId = req.params.id;
     const { userId, amount } = req.body;
-    
-    // 🔥 預設值邏輯: 如果 amount 是空或不是數字，則設為 100
     let val = parseFloat(amount);
     if (isNaN(val)) val = 100; 
 
@@ -234,7 +234,7 @@ app.post('/activity/:id/deposit', async (req, res) => {
         }
         res.redirect(`/activity/${activityId}/users`);
     } catch (err) {
-        console.error("Deposit Error:", err); // Log error to see if DB field missing
+        console.error("Deposit Error:", err);
         res.redirect(`/activity/${activityId}/users`);
     }
 });
@@ -248,12 +248,15 @@ app.post('/activity/:id/add-user', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 8. Settings
+// 8. Settings (🔥 UPDATE: Allow saving new threshold)
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
     const { name, cost, threshold } = req.body;
+    // Allow threshold to be 0 or negative
+    const newThreshold = isNaN(parseFloat(threshold)) ? 0 : parseFloat(threshold);
+    
     await query("UPDATE activities SET name = $1, cost_per_game = $2, alert_threshold = $3 WHERE id = $4", 
-        [name, parseFloat(cost)||0, parseFloat(threshold)||200, activityId]);
+        [name, parseFloat(cost)||0, newThreshold, activityId]);
     res.redirect(`/activity/${activityId}?open=true`);
 });
 
@@ -334,8 +337,6 @@ app.get('/activity/:id/session/:timestamp/details', async (req, res) => {
 
 app.post('/activity/:id/update-bowling-session', async (req, res) => {
     const activityId = req.params.id;
-    // 為了安全起見，這裡不實作重算 Cash Member 邏輯，避免過度複雜化
-    // 編輯功能暫時僅支援重新分配，假設所有參與者狀態不變
     res.redirect(`/activity/${activityId}/history`);
 });
 
