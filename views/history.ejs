@@ -196,13 +196,15 @@
     const editBowlingModal = new bootstrap.Modal(document.getElementById('editBowlingModal'));
 
     function handleEdit(timestamp, total, isBowling) {
+        // 🔥 FIX: 確保填入 Input 框的數值只有 2 位小數
+        const formattedTotal = parseFloat(total).toFixed(2);
+
         if (isBowling) {
             document.getElementById('bowlingTimestamp').value = timestamp;
-            document.getElementById('bowlingTotalCost').value = total;
+            document.getElementById('bowlingTotalCost').value = formattedTotal; // 使用格式化後的數值
             document.getElementById('bowlingGuestGames').value = '';
             document.querySelectorAll('[id^="user-game-"]').forEach(el => el.value = '');
 
-            // 🔥 FIX: 使用 Backticks (`) 以確保 ${timestamp} 正常運作
             fetch(`/activity/<%= activity.id %>/session/${timestamp}/details`)
                 .then(res => res.json())
                 .then(data => {
@@ -217,7 +219,7 @@
                 });
         } else {
             document.getElementById('editGroupTimestamp').value = timestamp;
-            document.getElementById('editGroupTotal').value = total;
+            document.getElementById('editGroupTotal').value = formattedTotal; // 使用格式化後的數值
             editGroupModal.show();
         }
     }
