@@ -15,9 +15,28 @@
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
-        .bowling-card { background-color: white; border: 1px solid #eee; transition: all 0.2s; display: flex; flex-direction: column; justify-content: space-between; padding: 12px; border-radius: 8px; box-shadow: 0 .125rem .25rem rgba(0,0,0,.075); height: 100%; }
-        .guest-card { background-color: #f8f9fa; border: 2px dashed #adb5bd; display: flex; flex-direction: column; justify-content: space-between; padding: 12px; border-radius: 8px; height: 100%; color: #6c757d; }
-        .guest-card.active { background-color: #e2e3e5; border-color: #6c757d; color: #383d41; }
+
+        /* 🔥 FIX: Bowling Card - 統一高度 */
+        .bowling-card {
+            background-color: white; border: 1px solid #eee; transition: all 0.2s;
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 12px; border-radius: 8px; box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+            height: 100%;
+            min-height: 125px; /* 強制最小高度，防止高低不一 */
+        }
+        
+        /* 🔥 FIX: Guest Card - 統一高度 & 邊框 */
+        .guest-card {
+            background-color: #f8f9fa; 
+            border: 1px dashed #adb5bd; /* 改為 1px 保持大小一致 */
+            display: flex; flex-direction: column; justify-content: space-between;
+            padding: 12px; border-radius: 8px; 
+            height: 100%; 
+            min-height: 125px; /* 強制最小高度，防止高低不一 */
+            color: #6c757d;
+        }
+        .guest-card.active { background-color: #e2e3e5; border-color: #6c757d; color: #383d41; border-style: solid; }
+        
         .option-card { background-color: white; border: 1px solid #388697; transition: all 0.2s; height: 180px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
         .btn-check:checked + .option-card { background-color: #388697; }
         .btn-check:checked + .option-card .user-name { color: white !important; }
@@ -104,7 +123,7 @@
 
             <div class="row g-2">
                 <% users.forEach(user => { %>
-                    <div class="col-12 col-md-6">
+                    <div class="col-6 col-md-4">
                         <div class="bowling-card" id="card-<%= user.id %>">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="fw-bold fs-5 text-truncate" style="max-width: 60%;"><%= user.name %></div>
@@ -180,7 +199,7 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const translations = { zh: { menu_members: "會員管理", menu_history: "歷史紀錄", menu_settings: "設定", menu_share: "分享連結 (只讀)", settings_title: "設定", label_activity_name: "活動名稱", label_total_cost: "是次總數 ($)", label_threshold: "低餘額提醒 $", btn_save_settings: "保存設定", btn_confirm: "確認", alert_balance: "餘額不足", btn_reset: "重置", unit_game: "局", txt_select_players: "揀選有份玩的人", btn_toggle_all: "全選 / 清除", txt_people: "人", txt_games: "局", btn_deduct: "扣數" }, en: { menu_members: "Members", menu_history: "History", menu_settings: "Settings", menu_share: "Share Link (Read-only)", settings_title: "Settings", label_activity_name: "Activity Name", label_total_cost: "Total Cost ($)", label_threshold: "Alert Threshold $", btn_save_settings: "Save Settings", btn_confirm: "Confirm", alert_balance: "Low Balance", btn_reset: "Reset", unit_game: "G", txt_select_players: "Select Players", btn_toggle_all: "Select/Clear All", txt_people: "Ppl", txt_games: "Gms", btn_deduct: "Submit" } };
+    const translations = { zh: { menu_members: "會員管理", menu_history: "歷史紀錄", menu_settings: "設定", menu_share: "分享連結 (只讀)", settings_title: "設定", label_activity_name: "活動名稱", label_total_cost: "是次總數 ($)", label_cost: "每局金額", label_threshold: "低餘額提醒 $", btn_save_settings: "保存設定", btn_confirm: "確認", alert_balance: "餘額不足", btn_reset: "重置", unit_game: "局", txt_select_players: "揀選有份玩的人", btn_toggle_all: "全選 / 清除", txt_people: "人", txt_games: "局", btn_deduct: "扣數" }, en: { menu_members: "Members", menu_history: "History", menu_settings: "Settings", menu_share: "Share Link (Read-only)", settings_title: "Settings", label_activity_name: "Activity Name", label_total_cost: "Total Cost ($)", label_threshold: "Alert Threshold $", btn_save_settings: "Save Settings", btn_confirm: "Confirm", alert_balance: "Low Balance", btn_reset: "Reset", unit_game: "G", txt_select_players: "Select Players", btn_toggle_all: "Select/Clear All", txt_people: "Ppl", txt_games: "Gms", btn_deduct: "Submit" } };
     let currentLang = localStorage.getItem('appLang') || 'zh';
     function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG'; }
     function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
@@ -225,7 +244,7 @@
             if (cb.checked) {
                 const guestVal = parseInt(document.getElementById('guest-input-' + cb.value).value) || 0;
                 const myCost = costPerHead * (1 + guestVal);
-                infoDiv.innerText = `-$${myCost.toFixed(2)}`; // 🔥 UPDATE
+                infoDiv.innerText = `-$${myCost.toFixed(2)}`;
                 if(guestVal > 0) infoDiv.innerText += ` (1+${guestVal})`;
                 infoDiv.style.visibility = 'visible';
             } else { infoDiv.style.visibility = 'hidden'; }
