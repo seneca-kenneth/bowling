@@ -50,6 +50,13 @@
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 <span data-i18n="menu_members">會員管理</span></a></li>
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>/history">📜 <span data-i18n="menu_history">歷史紀錄</span></a></li>
                     <li><hr class="dropdown-divider"></li>
+                    <li><a class="dropdown-item text-info" href="/activity/<%= activity.id %>/share" target="_blank">🔗 <span data-i18n="menu_share">分享連結 (只讀)</span></a></li>
+                    <li>
+                        <button class="dropdown-item text-primary fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#settingsBox">
+                            🛠️ <span data-i18n="menu_settings">設定</span>
+                        </button>
+                    </li>
+                    <li><hr class="dropdown-divider"></li>
                     <li><button class="dropdown-item" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button></li>
                 </ul>
             </div>
