@@ -19,7 +19,7 @@ async function query(text, params) {
     return await pool.query(text, params);
 }
 
-// 1. Reset DB (🔥 UPDATE: Default Threshold = 0)
+// 1. Reset DB
 app.get('/reset-db', async (req, res) => {
     try {
         await query("DROP TABLE IF EXISTS transactions");
@@ -31,7 +31,7 @@ app.get('/reset-db', async (req, res) => {
             name TEXT NOT NULL,
             type TEXT DEFAULT 'bowling',
             cost_per_game NUMERIC DEFAULT 0,
-            alert_threshold NUMERIC DEFAULT 0, 
+            alert_threshold NUMERIC DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         )`);
 
@@ -71,11 +71,10 @@ app.get('/', async (req, res) => {
     }
 });
 
-// 3. Create Activity (🔥 UPDATE: Default Threshold = 0)
+// 3. Create Activity
 app.post('/create-activity', async (req, res) => {
     const { name, cost, type } = req.body;
     const activityType = type || 'bowling';
-    // Default alert_threshold to 0 if not specified
     await query("INSERT INTO activities (name, cost_per_game, type, alert_threshold) VALUES ($1, $2, $3, 0)", 
         [name, parseFloat(cost) || 0, activityType]);
     res.redirect('/');
@@ -169,7 +168,6 @@ app.post('/activity/:id/record', async (req, res) => {
             }
 
         } else {
-            // Pickleball Mode
             let userIds = [];
             if (Array.isArray(selectedUsers)) userIds = selectedUsers;
             else if (selectedUsers) userIds = [selectedUsers];
@@ -248,43 +246,98 @@ app.post('/activity/:id/add-user', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 8. Settings (🔥 UPDATE: Allow saving new threshold)
+// 8. Settings
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
     const { name, cost, threshold } = req.body;
-    // Allow threshold to be 0 or negative
     const newThreshold = isNaN(parseFloat(threshold)) ? 0 : parseFloat(threshold);
-    
     await query("UPDATE activities SET name = $1, cost_per_game = $2, alert_threshold = $3 WHERE id = $4", 
         [name, parseFloat(cost)||0, newThreshold, activityId]);
     res.redirect(`/activity/${activityId}?open=true`);
 });
 
-// 9. History Page
+// 9. History Page (🔥 UPDATE: Total includes Cash Logic)
 app.get('/activity/:id/history', async (req, res) => {
     const activityId = req.params.id;
     try {
-        const sql = `SELECT t.id, t.amount, t.description, t.date, t.type, t.user_id, u.name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.activity_id = $1 ORDER BY t.date DESC`;
+        const sql = `
+            SELECT t.id, t.amount, t.description, t.date, t.type, t.user_id, u.name 
+            FROM transactions t 
+            JOIN users u ON t.user_id = u.id 
+            WHERE t.activity_id = $1
+            ORDER BY t.date DESC`;
         const transRes = await query(sql, [activityId]);
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
         const usersRes = await query("SELECT * FROM users WHERE activity_id = $1 ORDER BY name ASC", [activityId]);
         
         const groups = {};
+        
         transRes.rows.forEach(t => {
             const dateKey = new Date(t.date).toISOString(); 
             if (!groups[dateKey]) {
                 groups[dateKey] = {
-                    date: t.date, timestamp: dateKey, total: 0, type: t.type, records: [],
-                    isBowling: t.description.includes('打波'), isPickle: t.description.includes('夾場租')
+                    date: t.date,
+                    timestamp: dateKey,
+                    total: 0,
+                    explicitTotal: 0, // 🔥 Store the "共$XXX" if found
+                    calculatedSum: 0, // 🔥 Sum of (Pool Deduction + Cash Payment)
+                    type: t.type, 
+                    records: [],
+                    isBowling: t.description.includes('打波'),
+                    isPickle: t.description.includes('夾場租')
                 };
             }
-            if (t.type === 'expense') groups[dateKey].total += Math.abs(parseFloat(t.amount));
-            else if (t.type === 'deposit') groups[dateKey].total += parseFloat(t.amount);
-            groups[dateKey].records.push({ ...t, amount: parseFloat(t.amount) });
+            
+            const group = groups[dateKey];
+
+            // 1. Calculate Standard Sum (Pool Only)
+            if (t.type === 'expense') {
+                const amount = Math.abs(parseFloat(t.amount));
+                group.calculatedSum += amount; // Add pool share
+                
+                // 2. Check for Cash Amount "(Cash: $17.28)"
+                const cashMatch = t.description.match(/\(Cash: \$(\d+(\.\d+)?)\)/);
+                if (cashMatch) {
+                    group.calculatedSum += parseFloat(cashMatch[1]); // Add cash share
+                }
+
+                // 3. Check for Explicit Total "(共$103.70)" - Only Pool Members have this
+                const totalMatch = t.description.match(/\(共\$(\d+(\.\d+)?)\)/);
+                if (totalMatch) {
+                    group.explicitTotal = parseFloat(totalMatch[1]);
+                }
+
+            } else if (t.type === 'deposit') {
+                group.total += parseFloat(t.amount); // Deposits are simple
+            }
+
+            group.records.push({ ...t, amount: parseFloat(t.amount) });
         });
+
+        // 🔥 Final Decision on Group Total
+        Object.values(groups).forEach(group => {
+            if (group.type === 'expense') {
+                // If we found an explicit "Total Bill" string, use it (Most Accurate)
+                if (group.explicitTotal > 0) {
+                    group.total = group.explicitTotal;
+                } else {
+                    // Otherwise (e.g. All Cash), use the sum we calculated
+                    group.total = group.calculatedSum;
+                }
+            }
+        });
+
         const groupArray = Object.values(groups).sort((a, b) => b.date - a.date);
-        res.render('history', { groupedTransactions: groupArray, activity: actRes.rows[0], users: usersRes.rows });
-    } catch (err) { console.error(err); res.send("Error"); }
+
+        res.render('history', { 
+            groupedTransactions: groupArray,
+            activity: actRes.rows[0],
+            users: usersRes.rows 
+        });
+    } catch (err) {
+        console.error(err);
+        res.send("Error");
+    }
 });
 
 // 10. Users Page
@@ -358,6 +411,15 @@ app.post('/activity/:id/delete-transaction', async (req, res) => {
 
 app.post('/activity/:id/edit-user', async (req, res) => { await query("UPDATE users SET name = $1 WHERE id = $2", [req.body.name, req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
 app.post('/activity/:id/delete-user', async (req, res) => { await query("DELETE FROM users WHERE id = $1", [req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
+
+// 🚑 Emergency DB Fix (Optional, but good to have)
+app.get('/fix-db', async (req, res) => {
+    try {
+        await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_pool_member BOOLEAN DEFAULT FALSE");
+        await query("UPDATE users SET is_pool_member = TRUE WHERE balance != 0");
+        res.send("✅ 資料庫已修復！");
+    } catch (err) { res.send("修復失敗: " + err.message); }
+});
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`App running on port ${PORT}`));
