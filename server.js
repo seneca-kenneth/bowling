@@ -74,6 +74,7 @@ app.get('/', async (req, res) => {
 app.post('/create-activity', async (req, res) => {
     const { name, cost, type } = req.body;
     const activityType = type || 'bowling';
+    // 🔥 UPDATE: Force cost to 0 if not provided
     await query("INSERT INTO activities (name, cost_per_game, type) VALUES ($1, $2, $3)", 
         [name, parseFloat(cost) || 0, activityType]);
     res.redirect('/');
@@ -220,10 +221,11 @@ app.post('/activity/:id/add-user', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 8. Settings (Keep same)
+// 8. Settings
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
     const { name, cost, threshold } = req.body;
+    // 🔥 UPDATE: Force cost to 0 if not provided
     await query("UPDATE activities SET name = $1, cost_per_game = $2, alert_threshold = $3 WHERE id = $4", 
         [name, parseFloat(cost)||0, parseFloat(threshold)||200, activityId]);
     res.redirect(`/activity/${activityId}?open=true`);
