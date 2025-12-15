@@ -14,16 +14,7 @@
         .amount-neg { color: red; font-weight: bold; }
         .table-text-small { font-size: 0.9rem; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
-        
-        /* 🔥 UPDATE: 已刪除紀錄的樣式 */
-        .void-row { background-color: #f8f9fa; color: #adb5bd; }
-        .void-row td { text-decoration: line-through; }
-        .void-amount { color: #adb5bd !important; font-weight: normal; text-decoration: none !important; }
-        
-        /* Checkbox & Button Styles */
-        .btn-check:checked + .btn-outline-primary { background-color: #388697; color: white; }
-        .guest-btn { width: 25px; height: 25px; padding: 0; line-height: 23px; border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold; }
-
+        .void-row { text-decoration: line-through; color: #adb5bd; }
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -41,12 +32,13 @@
             <div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div>
         </div>
         <div class="d-flex align-items-center gap-2">
-            <button class="btn btn-sm btn-outline-light border-0" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button>
             <div class="dropdown">
                 <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
                 <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>">🏠 <span data-i18n="menu_return">返回記數</span></a></li>
                     <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 <span data-i18n="menu_members">會員管理</span></a></li>
+                    <li><hr class="dropdown-divider"></li>
+                    <li><button class="dropdown-item" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button></li>
                 </ul>
             </div>
         </div>
@@ -54,159 +46,87 @@
 </nav>
 
 <div class="container">
-    <h4 class="mb-3">📜 <%= activity.name %> - <span data-i18n="title_suffix">紀錄</span></h4>
+    <h4 class="mb-3">📜 <span data-i18n="title_history">歷史紀錄</span></h4>
 
-    <% if (transactions.length === 0) { %>
+    <% if (groupedTransactions.length === 0) { %>
         <div class="alert alert-info text-center" data-i18n="no_records">暫時未有任何交易紀錄。</div>
     <% } else { %>
-        <div class="card shadow-sm">
-            <div class="table-responsive">
-                <table class="table table-striped align-middle mb-0">
-                    <thead class="table-dark small">
-                        <tr>
-                            <th data-i18n="th_time_user">時間/人物</th>
-                            <th data-i18n="th_details">詳情</th>
-                            <th class="text-end" data-i18n="th_amount">金額</th>
-                            <th class="text-end" data-i18n="th_action">操作</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <% transactions.forEach(t => { %>
-                            <tr class="<%= t.type === 'void' ? 'void-row' : '' %>">
-                                <td class="table-text-small">
-                                    <div class="fw-bold"><%= t.name || 'Unknown' %></div>
-                                    <div class="text-muted" style="font-size: 0.75rem;">
-                                        <%= t.date.replace('T', ' ').substring(0, 16) %>
-                                    </div>
-                                </td>
-                                <td class="table-text-small">
-                                    <%= t.description %>
-                                    <% if(t.type === 'deposit') { %>
-                                        <span class="badge bg-success" style="font-size: 0.6rem;" data-i18n="badge_deposit">入數</span>
-                                    <% } %>
-                                </td>
-                                
-                                <% if (t.type === 'void') { %>
-                                    <td class="text-end table-text-small void-amount">$0.0</td>
-                                    <td class="text-end">
-                                        <span class="badge bg-secondary" style="font-size: 0.7rem;">Removed</span>
+        
+        <% groupedTransactions.forEach(group => { %>
+            <div class="card shadow-sm mb-3">
+                <div class="card-header d-flex justify-content-between align-items-center bg-white">
+                    <div>
+                        <div class="fw-bold text-primary">
+                            <%= group.date.toISOString().substring(0, 10) %> 
+                            <% if(group.isBowling) { %> 🎳 Bowling <% } %>
+                            <% if(group.isPickle) { %> 🥒 Pickleball <% } %>
+                            <% if(group.type === 'deposit') { %> 💰 Deposit <% } %>
+                        </div>
+                        <div class="small text-muted"><%= group.date.toISOString().substring(11, 16) %></div>
+                    </div>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="fs-5 fw-bold text-dark">$<%= group.total.toFixed(1) %></span>
+                        <% if(group.type === 'expense') { %>
+                            <button class="btn btn-sm btn-outline-secondary py-0 px-2" 
+                                onclick="openEditGroup('<%= group.timestamp %>', '<%= group.total %>')">✏️</button>
+                        <% } %>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <table class="table table-striped mb-0 align-middle">
+                        <tbody>
+                            <% group.records.forEach(t => { %>
+                                <tr class="<%= t.type === 'void' ? 'void-row' : '' %>">
+                                    <td class="ps-3 table-text-small">
+                                        <div class="fw-bold"><%= t.name || 'Unknown' %></div>
+                                        <div class="text-muted small"><%= t.description %></div>
                                     </td>
-                                <% } else { %>
-                                    <td class="text-end table-text-small <%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>">
-                                        <%= t.amount > 0 ? '+' : '' %><%= t.amount.toFixed(1) %>
+                                    <td class="text-end pe-3 table-text-small">
+                                        <% if(t.type === 'void') { %>
+                                            $0.0
+                                        <% } else { %>
+                                            <span class="<%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>">
+                                                <%= t.amount.toFixed(1) %>
+                                            </span>
+                                        <% } %>
+                                        
+                                        <% if(t.type !== 'void') { %>
+                                            <form action="/activity/<%= activity.id %>/delete-transaction" method="POST" class="d-inline ms-2">
+                                                <input type="hidden" name="id" value="<%= t.id %>">
+                                                <button class="btn btn-sm btn-link text-danger p-0" style="text-decoration: none;">🗑️</button>
+                                            </form>
+                                        <% } %>
                                     </td>
-                                    <td class="text-end">
-                                        <button class="btn btn-sm btn-outline-secondary py-0 px-1 btn-edit" 
-                                            data-id="<%= t.id %>" 
-                                            data-desc="<%= t.description %>" 
-                                            data-amount="<%= Math.abs(t.amount) %>"
-                                            data-type="<%= t.type %>"
-                                            data-act-id="<%= activity.id %>">
-                                            ✏️
-                                        </button>
-                                        <button class="btn btn-sm btn-outline-danger py-0 px-1 btn-delete" 
-                                            data-id="<%= t.id %>">
-                                            🗑️
-                                        </button>
-                                    </td>
-                                <% } %>
-                            </tr>
-                        <% }) %>
-                    </tbody>
-                </table>
+                                </tr>
+                            <% }) %>
+                        </tbody>
+                    </table>
+                </div>
             </div>
-        </div>
+        <% }) %>
+
     <% } %>
 
-    <div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal fade" id="editGroupModal" tabindex="-1">
         <div class="modal-dialog modal-dialog-centered">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" data-i18n="modal_del_title">刪除紀錄</h5>
+                    <h5 class="modal-title" data-i18n="modal_edit_total">修改總金額</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
-                <form action="/activity/<%= activity.id %>/delete-transaction" method="POST">
+                <form action="/activity/<%= activity.id %>/update-group-total" method="POST">
                     <div class="modal-body">
-                        <input type="hidden" name="id" id="deleteTransId">
-                        <p data-i18n="confirm_del_record">確定要刪除這條紀錄嗎？</p>
-                        <p class="text-danger small" data-i18n="hint_del_restore">
-                            刪除後，該用戶的餘額會自動還原。<br>
-                            (若為夾錢紀錄，剩餘者將會重新計算，此紀錄將保留但歸零)
-                        </p>
+                        <input type="hidden" name="timestamp" id="editGroupTimestamp">
+                        <label class="form-label" data-i18n="label_new_total">新總金額 ($)</label>
+                        <input type="number" step="0.1" name="newTotal" id="editGroupTotal" class="form-control" required>
+                        <div class="small text-muted mt-2" data-i18n="hint_group_update">
+                            系統將根據原本的比例 (局數或訪客權重) 自動重新分配金額給所有人。
+                        </div>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button>
-                        <button type="submit" class="btn btn-danger" data-i18n="btn_confirm_delete">確認刪除</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-    </div>
-    
-    <div class="modal fade" id="editModal" tabindex="-1">
-        <div class="modal-dialog modal-dialog-centered">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <h5 class="modal-title" data-i18n="modal_edit_title">修改紀錄</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                </div>
-                <form action="/activity/<%= activity.id %>/update-transaction" method="POST">
-                    <div class="modal-body">
-                        <input type="hidden" name="id" id="editTransId">
-                        <div class="mb-3">
-                            <label class="form-label text-muted"><span data-i18n="label_original">原本內容</span>: <span id="editTransDesc" class="fw-bold text-dark"></span></label>
-                        </div>
-                        
-                        <div id="editGameSection" class="d-none">
-                            <label class="form-label" data-i18n="label_new_games">修正為多少局？</label>
-                            <input type="number" name="newGameCount" id="inputGameCount" class="form-control" min="1" placeholder="3">
-                        </div>
-
-                        <div id="editAmountSection" class="d-none">
-                            <label class="form-label" data-i18n="label_new_amount">修正金額 ($)</label>
-                            <input type="number" step="0.1" name="newAmount" id="inputAmount" class="form-control" placeholder="100">
-                        </div>
-
-                        <div id="editParticipantsSection" class="d-none mt-3">
-                            <div class="d-flex justify-content-between align-items-center mb-3 p-2 bg-white border rounded">
-                                <span class="fw-bold">👥 <span data-i18n="label_guests">訪客/Guest</span></span>
-                                <div class="input-group" style="width: 120px;">
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeEditGuest(-1)">-</button>
-                                    <input type="text" name="guestCount" id="editGuestInput" class="form-control text-center fw-bold" value="0" readonly>
-                                    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeEditGuest(1)">+</button>
-                                </div>
-                            </div>
-
-                            <label class="form-label fw-bold" data-i18n="label_participants">修改參與者</label>
-                            <div class="card card-body bg-light p-2" style="max-height: 250px; overflow-y: auto;">
-                                <div class="row g-2">
-                                    <% users.forEach(user => { %>
-                                        <div class="col-6">
-                                            <input type="checkbox" class="btn-check group-checkbox" 
-                                                   name="selectedUsers" value="<%= user.id %>" id="chk-<%= user.id %>">
-                                            
-                                            <label class="btn btn-outline-primary btn-sm w-100 p-2" for="chk-<%= user.id %>">
-                                                <div class="fw-bold"><%= user.name %></div>
-                                                <div class="d-flex justify-content-center align-items-center gap-1 mt-1" onclick="event.preventDefault()">
-                                                    <button type="button" class="guest-btn" onclick="changeEditUserGuest('<%= user.id %>', -1)">-</button>
-                                                    <span class="small text-muted fw-bold">👤+<span id="guest-display-<%= user.id %>">0</span></span>
-                                                    <button type="button" class="guest-btn" onclick="changeEditUserGuest('<%= user.id %>', 1)">+</button>
-                                                    <input type="hidden" name="guests[uid_<%= user.id %>]" id="guest-input-<%= user.id %>" value="0">
-                                                </div>
-                                            </label>
-                                        </div>
-                                    <% }) %>
-                                </div>
-                            </div>
-                            <div class="small text-muted mt-1" data-i18n="hint_recalc">
-                                系統會刪除舊有紀錄，並根據新選擇的人數及權重重新分配。
-                            </div>
-                        </div>
-
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button>
-                        <button type="submit" class="btn btn-primary" data-i18n="btn_save_changes">保存修改</button>
+                        <button type="submit" class="btn btn-primary" data-i18n="btn_save">保存</button>
                     </div>
                 </form>
             </div>
@@ -219,54 +139,26 @@
 <script>
     const translations = {
         zh: {
-            nav_back: "返回記數",
-            title_suffix: "紀錄",
+            title_history: "歷史紀錄",
             no_records: "暫時未有任何交易紀錄。",
-            th_time_user: "時間/人物",
-            th_details: "詳情",
-            th_amount: "金額",
-            th_action: "操作",
-            badge_deposit: "入數",
-            modal_del_title: "刪除紀錄",
-            confirm_del_record: "確定要刪除這條紀錄嗎？",
-            hint_del_restore: "刪除後，該用戶的餘額會自動還原。<br>(若是夾錢紀錄，剩餘者將會重新計算，此紀錄保留但歸零)",
-            btn_cancel: "取消",
-            btn_confirm_delete: "確認刪除",
-            modal_edit_title: "修改紀錄",
-            label_original: "原本內容",
-            label_new_games: "修正為多少局？",
-            label_new_amount: "修正金額 ($)",
-            label_participants: "修改參與者 (加權計算)",
-            hint_recalc: "系統會根據新選擇的人數及 Guest 重新分配。",
-            btn_save_changes: "保存修改",
             menu_return: "返回記數",
             menu_members: "會員管理",
-            label_guests: "訪客/Guest"
+            modal_edit_total: "修改總金額",
+            label_new_total: "新總金額 ($)",
+            hint_group_update: "系統將根據原本的比例 (局數或訪客權重) 自動重新分配金額給所有人。",
+            btn_cancel: "取消",
+            btn_save: "保存"
         },
         en: {
-            nav_back: "Back",
-            title_suffix: "History",
+            title_history: "History",
             no_records: "No transaction records yet.",
-            th_time_user: "Time/User",
-            th_details: "Details",
-            th_amount: "Amount",
-            th_action: "Action",
-            badge_deposit: "Deposit",
-            modal_del_title: "Delete Record",
-            confirm_del_record: "Are you sure you want to delete this record?",
-            hint_del_restore: "Balance will be restored. (Split bills will be recalculated, this record kept as void)",
-            btn_cancel: "Cancel",
-            btn_confirm_delete: "Delete",
-            modal_edit_title: "Edit Record",
-            label_original: "Original",
-            label_new_games: "New Game Count",
-            label_new_amount: "New Amount ($)",
-            label_participants: "Edit Participants (Weighted)",
-            hint_recalc: "System will redistribute cost based on selection and guests.",
-            btn_save_changes: "Save Changes",
             menu_return: "Back to Record",
             menu_members: "Members",
-            label_guests: "Guests"
+            modal_edit_total: "Edit Total Amount",
+            label_new_total: "New Total ($)",
+            hint_group_update: "System will redistribute the new total based on original proportions (games or guests).",
+            btn_cancel: "Cancel",
+            btn_save: "Save"
         }
     };
 
@@ -276,7 +168,7 @@
         const langData = translations[currentLang];
         document.querySelectorAll('[data-i18n]').forEach(el => {
             const key = el.getAttribute('data-i18n');
-            if (langData[key]) el.innerHTML = langData[key];
+            if (langData[key]) el.innerText = langData[key];
         });
         document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
     }
@@ -289,110 +181,13 @@
 
     applyLanguage();
 
-    function changeEditGuest(delta) {
-        const input = document.getElementById('editGuestInput');
-        let val = parseInt(input.value) || 0;
-        val += delta;
-        if (val < 0) val = 0;
-        input.value = val;
+    const editGroupModal = new bootstrap.Modal(document.getElementById('editGroupModal'));
+
+    function openEditGroup(timestamp, total) {
+        document.getElementById('editGroupTimestamp').value = timestamp;
+        document.getElementById('editGroupTotal').value = total;
+        editGroupModal.show();
     }
-
-    function changeEditUserGuest(userId, delta) {
-        const input = document.getElementById('guest-input-' + userId);
-        const display = document.getElementById('guest-display-' + userId);
-        const checkbox = document.getElementById('chk-' + userId);
-
-        let val = parseInt(input.value) || 0;
-        val += delta;
-        if (val < 0) val = 0;
-        
-        input.value = val;
-        display.innerText = val;
-
-        if (val > 0 && !checkbox.checked) {
-            checkbox.checked = true;
-        }
-    }
-
-    const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
-    document.querySelectorAll('.btn-delete').forEach(btn => {
-        btn.addEventListener('click', function() {
-            document.getElementById('deleteTransId').value = this.dataset.id;
-            deleteModal.show();
-        });
-    });
-
-    const editModal = new bootstrap.Modal(document.getElementById('editModal'));
-    
-    document.querySelectorAll('.btn-edit').forEach(btn => {
-        btn.addEventListener('click', function() {
-            const id = this.dataset.id;
-            const desc = this.dataset.desc;
-            const amount = this.dataset.amount;
-            const type = this.dataset.type;
-            const actId = this.dataset.actId;
-
-            document.getElementById('editTransId').value = id;
-            document.getElementById('editTransDesc').innerText = desc;
-
-            const gameSection = document.getElementById('editGameSection');
-            const amountSection = document.getElementById('editAmountSection');
-            const participantsSection = document.getElementById('editParticipantsSection');
-            const gameInput = document.getElementById('inputGameCount');
-            const amountInput = document.getElementById('inputAmount');
-            const guestInput = document.getElementById('editGuestInput');
-
-            gameInput.value = '';
-            amountInput.value = '';
-            guestInput.value = '0';
-            gameSection.classList.add('d-none');
-            amountSection.classList.add('d-none');
-            participantsSection.classList.add('d-none');
-            
-            document.querySelectorAll('.group-checkbox').forEach(cb => cb.checked = false);
-            document.querySelectorAll('[id^="guest-input-"]').forEach(el => el.value = 0);
-            document.querySelectorAll('[id^="guest-display-"]').forEach(el => el.innerText = 0);
-
-            if (type === 'expense' && desc.includes('局')) {
-                gameSection.classList.remove('d-none');
-                const match = desc.match(/(\d+)/);
-                if(match) gameInput.value = match[0];
-            } 
-            else if (type === 'expense' && desc.includes('共$')) {
-                amountSection.classList.remove('d-none');
-                participantsSection.classList.remove('d-none'); 
-                
-                const match = desc.match(/共\$(\d+(\.\d+)?)/);
-                if(match) amountInput.value = match[1];
-
-                // Global guest check from desc
-                const guestMatch = desc.match(/\[(\d+)訪客\]/);
-                if (guestMatch) {
-                    guestInput.value = guestMatch[1];
-                }
-
-                fetch(`/activity/${actId}/transaction/${id}/group`)
-                    .then(res => res.json())
-                    .then(users => {
-                        users.forEach(u => {
-                            const cb = document.getElementById('chk-' + u.user_id);
-                            if(cb) cb.checked = true;
-                            // Individual guest check
-                            if (u.guests > 0) {
-                                document.getElementById('guest-input-' + u.user_id).value = u.guests;
-                                document.getElementById('guest-display-' + u.user_id).innerText = u.guests;
-                            }
-                        });
-                    });
-            }
-            else {
-                amountSection.classList.remove('d-none');
-                amountInput.value = amount;
-            }
-
-            editModal.show();
-        });
-    });
 </script>
 </body>
 </html>

@@ -15,45 +15,14 @@
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
         
-        /* Pickleball Card Style */
-        .option-card { 
-            background-color: white; 
-            border: 1px solid #388697; 
-            transition: all 0.2s; 
-            height: 180px; /* 稍微加高少少以防迫夾 */
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between; 
-            align-items: center;
-        }
-        
+        .option-card { background-color: white; border: 1px solid #388697; transition: all 0.2s; height: 180px; display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
         .btn-check:checked + .option-card { background-color: #388697; }
         .btn-check:checked + .option-card .user-name { color: white !important; }
         .btn-check:checked + .option-card .guest-label { color: white !important; }
         
-        /* 餘額盒仔 */
-        .balance-box {
-            background-color: #e9ecef;
-            border-radius: 8px;
-            padding: 2px 8px;
-            width: 100%;
-            text-align: center;
-        }
-
-        /* 訪客按鈕 */
-        .guest-btn { 
-            width: 25px; height: 25px; padding: 0; line-height: 23px; 
-            border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold;
-        }
-        
-        /* 預留金額顯示位置 */
-        .split-info {
-            height: 24px;
-            visibility: hidden;
-            font-weight: bold;
-            font-size: 1.1rem; /* 加大少少字 */
-            color: white;
-        }
+        .balance-box { background-color: #e9ecef; border-radius: 8px; padding: 2px 8px; width: 100%; text-align: center; }
+        .guest-btn { width: 25px; height: 25px; padding: 0; line-height: 23px; border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold; }
+        .split-info { height: 24px; visibility: hidden; font-weight: bold; font-size: 1.1rem; color: white; }
 
         body { padding-bottom: 80px; background-color: #f8f9fa; margin: 0; padding-top: 0; }
         .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; }
@@ -63,7 +32,6 @@
         .neg-bal { color: #dc3545; }
         .pos-bal { color: #198754; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
-
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -115,22 +83,10 @@
                     <input type="text" name="name" class="form-control fw-bold" value="<%= activity.name %>" required>
                 </div>
                 <div class="row g-2 align-items-center">
-                    <% if (!activity.type || activity.type === 'bowling') { %>
-                        <div class="col-6">
-                            <label class="small text-muted" data-i18n="label_cost">每局金額</label>
-                            <input type="number" step="0.01" name="cost" class="form-control" value="<%= costPerGame %>">
-                        </div>
-                        <div class="col-6">
-                            <label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label>
-                            <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
-                        </div>
-                    <% } else { %>
-                        <input type="hidden" name="cost" value="<%= costPerGame %>">
-                        <div class="col-12">
-                            <label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label>
-                            <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
-                        </div>
-                    <% } %>
+                    <div class="col-12">
+                        <label class="small text-muted" data-i18n="label_threshold">低餘額提醒 $</label>
+                        <input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>">
+                    </div>
                     <div class="col-12 text-end mt-2">
                         <button class="btn btn-sm btn-secondary w-100" data-i18n="btn_save_settings">保存設定</button>
                     </div>
@@ -149,10 +105,20 @@
     <form action="/activity/<%= activity.id %>/record" method="POST" id="gameForm">
         
         <% if (!activity.type || activity.type === 'bowling') { %>
-            <div class="d-flex justify-content-between align-items-center mb-2 px-1">
-                <h5 class="mb-0 text-secondary"><span data-i18n="cost_per_game">每局</span> $<%= costPerGame %></h5>
-                <button type="button" class="btn btn-sm btn-outline-secondary" onclick="resetForm()" data-i18n="btn_reset">重置</button>
+            
+            <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
+                <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
+                <div class="input-group input-group-lg">
+                    <span class="input-group-text bg-primary text-white border-0">$</span>
+                    <input type="number" step="0.1" name="totalCost" class="form-control fw-bold fs-4" placeholder="0.0" required>
+                    <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
+                </div>
+                <div class="d-flex justify-content-between mt-2">
+                    <span class="small text-muted"><span id="totalPeople">0</span>人 / <span id="totalGames">0</span>局</span>
+                    <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill" onclick="resetForm()" data-i18n="btn_reset">重置</button>
+                </div>
             </div>
+
             <div class="row g-2">
                 <% users.forEach(user => { %>
                     <div class="col-12 col-md-6">
@@ -177,13 +143,6 @@
                 <% }) %>
             </div>
             <div style="height: 60px;"></div>
-            <div class="sticky-footer d-flex gap-2 justify-content-between align-items-center border-top">
-                <div class="small text-muted">
-                    <span id="totalPeople" class="fw-bold text-dark fs-5">0</span> <span data-i18n="txt_people">人</span>
-                    / <span id="totalGames" class="fw-bold text-dark fs-5">0</span> <span data-i18n="txt_games">局</span>
-                </div>
-                <button type="submit" class="btn btn-primary px-5 fw-bold shadow" data-i18n="btn_deduct">扣數</button>
-            </div>
 
         <% } else { %>
             <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
@@ -194,16 +153,6 @@
                            class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
                     <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
-                
-                <div class="d-flex justify-content-between align-items-center mb-2 px-1 d-none">
-                    <span class="small fw-bold text-muted">👥 <span data-i18n="label_guests">訪客/Guest</span></span>
-                    <div class="input-group" style="width: 140px;">
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeGuest(-1)">-</button>
-                        <input type="text" name="guestCount" id="guestInput" class="form-control text-center fw-bold" value="0" readonly>
-                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="changeGuest(1)">+</button>
-                    </div>
-                </div>
-
                 <div class="d-flex justify-content-between align-items-center">
                     <span class="small text-muted"><span data-i18n="txt_select_players">揀選有份玩的人</span> (<span id="splitCount">0</span>)</span>
                     <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3" onclick="toggleAll()" data-i18n="btn_toggle_all">全選 / 清除</button>
@@ -217,15 +166,12 @@
                         
                         <label class="option-card w-100 p-2 shadow-sm rounded text-primary" for="user-<%= user.id %>">
                             <span class="fs-5 fw-bold text-truncate w-100 text-center user-name"><%= user.name %></span>
-                            
                             <div class="balance-box mt-1">
                                 <span class="fs-5 fw-bold <%= user.balance < 0 ? 'text-danger' : 'text-success' %>">
                                     $<%= user.balance.toFixed(1) %>
                                 </span>
                             </div>
-
                             <div class="split-info mt-2 w-100 text-center" id="split-info-<%= user.id %>">-$0.0</div>
-
                             <div class="d-flex justify-content-center align-items-center gap-2 mt-1" onclick="event.preventDefault()">
                                 <button type="button" class="guest-btn" onclick="updateGuest('<%= user.id %>', -1)">-</button>
                                 <span class="small text-muted fw-bold guest-label">👤+<span id="guest-count-<%= user.id %>">0</span></span>
@@ -251,24 +197,15 @@
             menu_share: "分享連結 (只讀)",
             settings_title: "設定",
             label_activity_name: "活動名稱",
-            label_cost: "每局金額",
+            label_total_cost: "是次總數 ($)",
             label_threshold: "低餘額提醒 $",
             btn_save_settings: "保存設定",
-            deposit_title: "入錢",
             btn_confirm: "確認",
-            btn_add_user: "加人",
             alert_balance: "餘額不足",
-            cost_per_game: "每局",
             btn_reset: "重置",
             unit_game: "局",
-            txt_people: "人",
-            txt_games: "局",
-            btn_deduct: "扣數",
-            label_total_cost: "是次總數 ($)",
             txt_select_players: "揀選有份玩的人",
-            btn_toggle_all: "全選 / 清除",
-            placeholder_new_user: "新會員名",
-            label_guests: "訪客/Guest"
+            btn_toggle_all: "全選 / 清除"
         },
         en: {
             menu_members: "Members",
@@ -277,24 +214,15 @@
             menu_share: "Share Link (Read-only)",
             settings_title: "Settings",
             label_activity_name: "Activity Name",
-            label_cost: "Cost Per Game",
+            label_total_cost: "Total Cost ($)",
             label_threshold: "Alert Threshold $",
             btn_save_settings: "Save Settings",
-            deposit_title: "Deposit",
             btn_confirm: "Confirm",
-            btn_add_user: "Add",
             alert_balance: "Low Balance",
-            cost_per_game: "Per Game",
             btn_reset: "Reset",
             unit_game: "G",
-            txt_people: "Ppl",
-            txt_games: "Gms",
-            btn_deduct: "Submit",
-            label_total_cost: "Total Amount ($)",
             txt_select_players: "Select Players",
-            btn_toggle_all: "Select/Clear All",
-            placeholder_new_user: "New Name",
-            label_guests: "Guests"
+            btn_toggle_all: "Select/Clear All"
         }
     };
 
@@ -306,10 +234,6 @@
             const key = el.getAttribute('data-i18n');
             if (langData[key]) el.innerText = langData[key];
         });
-        const inputNewUser = document.getElementById('inputNewUser');
-        if(inputNewUser && translations[currentLang].placeholder_new_user) {
-            inputNewUser.placeholder = translations[currentLang].placeholder_new_user;
-        }
         document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
     }
 
@@ -321,33 +245,16 @@
 
     applyLanguage();
 
-    // Global Guest Counter (Optional now)
-    function changeGuest(delta) {
-        const input = document.getElementById('guestInput');
-        if(!input) return;
-        let val = parseInt(input.value) || 0;
-        val += delta;
-        if (val < 0) val = 0;
-        input.value = val;
-        updateSplit();
-    }
-
-    // Individual Guest Update
     function updateGuest(userId, delta) {
         const input = document.getElementById('guest-input-' + userId);
         const display = document.getElementById('guest-count-' + userId);
         const checkbox = document.getElementById('user-' + userId);
-
         let val = parseInt(input.value) || 0;
         val += delta;
         if (val < 0) val = 0;
-        
         input.value = val;
         display.innerText = val;
-
-        if (val > 0 && !checkbox.checked) {
-            checkbox.checked = true;
-        }
+        if (val > 0 && !checkbox.checked) checkbox.checked = true;
         updateSplit();
     }
 
@@ -364,7 +271,8 @@
                 if (val > 0) { people++; games += val; card.classList.add('active'); } 
                 else { card.classList.remove('active'); }
             });
-            totalPeopleSpan.innerText = people; totalGamesSpan.innerText = games;
+            if(totalPeopleSpan) totalPeopleSpan.innerText = people; 
+            if(totalGamesSpan) totalGamesSpan.innerText = games;
         }
         inputs.forEach(input => input.addEventListener('input', updateSummary));
     }
@@ -384,12 +292,10 @@
 
         const checkboxes = document.querySelectorAll('.user-checkbox');
         const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
-        const guestInput = document.getElementById('guestInput');
-        const generalGuestCount = guestInput ? (parseInt(guestInput.value) || 0) : 0;
         
         let totalCost = parseFloat(totalInput.value) || 0;
-        let totalHeads = generalGuestCount;
-        let totalGuests = generalGuestCount;
+        let totalHeads = 0;
+        let totalGuests = 0;
         
         checkboxes.forEach(cb => {
             if (cb.checked) {
@@ -420,11 +326,8 @@
             if (cb.checked) {
                 const guestVal = parseInt(document.getElementById('guest-input-' + cb.value).value) || 0;
                 const myCost = costPerHead * (1 + guestVal);
-                
                 infoDiv.innerText = `-$${myCost.toFixed(1)}`;
-                if(guestVal > 0) {
-                    infoDiv.innerText += ` (1+${guestVal})`;
-                }
+                if(guestVal > 0) infoDiv.innerText += ` (1+${guestVal})`;
                 infoDiv.style.visibility = 'visible';
             } else {
                 infoDiv.style.visibility = 'hidden';
