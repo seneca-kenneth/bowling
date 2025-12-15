@@ -19,18 +19,15 @@
         .bowling-card {
             background-color: white; border: 1px solid #eee; transition: all 0.2s;
             display: flex; flex-direction: column; justify-content: space-between;
-            padding: 10px; border-radius: 8px; box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+            padding: 12px; border-radius: 8px; box-shadow: 0 .125rem .25rem rgba(0,0,0,.075);
+            height: 100%;
         }
         
         /* Pickleball Card */
         .option-card { 
-            background-color: white; 
-            border: 1px solid #388697; 
-            transition: all 0.2s; 
-            height: 180px; 
-            display: flex; flex-direction: column; 
-            justify-content: space-between; 
-            align-items: center;
+            background-color: white; border: 1px solid #388697; transition: all 0.2s; 
+            height: 180px; display: flex; flex-direction: column; 
+            justify-content: space-between; align-items: center; 
         }
         .btn-check:checked + .option-card { background-color: #388697; }
         .btn-check:checked + .option-card .user-name { color: white !important; }
@@ -47,6 +44,13 @@
         .neg-bal { color: #dc3545; }
         .pos-bal { color: #198754; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
+        
+        /* Switch Customization */
+        .form-check-input:checked {
+            background-color: #388697;
+            border-color: #388697;
+        }
+
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -110,6 +114,7 @@
     <form action="/activity/<%= activity.id %>/record" method="POST" id="gameForm">
         
         <% if (!activity.type || activity.type === 'bowling') { %>
+            
             <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
                 <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg">
@@ -125,23 +130,26 @@
 
             <div class="row g-2">
                 <% users.forEach(user => { %>
-                    <div class="col-12 col-md-6">
+                    <div class="col-6 col-md-4">
                         <div class="bowling-card" id="card-<%= user.id %>">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="fw-bold fs-5 text-truncate" style="max-width: 60%;"><%= user.name %></div>
                                 <div class="balance-num small <%= user.balance < 0 ? 'neg-bal' : 'pos-bal' %>">$<%= user.balance.toFixed(2) %></div>
                             </div>
-                            <div class="d-flex gap-2">
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-primary text-white border-primary">👤</span>
-                                    <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" name="games[uid_<%= user.id %>]" class="form-control text-center fw-bold game-input border-primary" placeholder="0" data-userid="<%= user.id %>">
-                                </div>
-                                <div class="input-group input-group-sm">
-                                    <span class="input-group-text bg-secondary text-white border-secondary">👥</span>
-                                    <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" name="guestGames[uid_<%= user.id %>]" class="form-control text-center text-muted fw-bold game-input border-secondary" placeholder="0" data-userid="<%= user.id %>">
-                                </div>
+                            
+                            <div class="input-group mb-2">
+                                <span class="input-group-text bg-light border-0 small text-muted">局</span>
+                                <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" 
+                                       name="games[uid_<%= user.id %>]" 
+                                       class="form-control text-center fw-bold game-input" 
+                                       placeholder="0" data-userid="<%= user.id %>">
                             </div>
-                            <div class="d-flex justify-content-between px-1 mt-1" style="font-size: 0.7rem;"><span class="text-primary fw-bold">扣數 (Bill)</span><span class="text-secondary">Cash</span></div>
+
+                            <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0">
+                                <label class="form-check-label small text-muted" for="pool-<%= user.id %>">夾 Pool</label>
+                                <input class="form-check-input ms-2" type="checkbox" role="switch" 
+                                       id="pool-<%= user.id %>" name="usePool[uid_<%= user.id %>]" checked>
+                            </div>
                         </div>
                     </div>
                 <% }) %>
@@ -157,7 +165,8 @@
                 <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg mb-2">
                     <span class="input-group-text bg-primary text-white border-0">$</span>
-                    <input type="number" step="0.1" name="totalCost" id="totalCostInput" class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
+                    <input type="number" step="0.1" name="totalCost" id="totalCostInput" 
+                           class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
                     <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
@@ -207,11 +216,11 @@
             alert_balance: "餘額不足",
             btn_reset: "重置",
             unit_game: "局",
+            txt_select_players: "揀選有份玩的人",
+            btn_toggle_all: "全選 / 清除",
             txt_people: "人",
             txt_games: "局",
-            btn_deduct: "扣數",
-            txt_select_players: "揀選有份玩的人",
-            btn_toggle_all: "全選 / 清除"
+            btn_deduct: "扣數"
         },
         en: {
             menu_members: "Members",
@@ -228,11 +237,11 @@
             alert_balance: "Low Balance",
             btn_reset: "Reset",
             unit_game: "G",
+            txt_select_players: "Select Players",
+            btn_toggle_all: "Select/Clear All",
             txt_people: "Ppl",
             txt_games: "Gms",
-            btn_deduct: "Submit",
-            txt_select_players: "Select Players",
-            btn_toggle_all: "Select/Clear All"
+            btn_deduct: "Submit"
         }
     };
 
@@ -284,22 +293,11 @@
                 }
                 
                 if (val > 0) {
-                    // Count people if it's the Member input or if it's Guest input and member input is 0
-                    // Simplification: Count distinct user cards with any activity
-                    games += val;
+                    people++; 
+                    games += val; 
                 }
             });
-            // Recalculate distinct people for Bowling
-            const activeCards = document.querySelectorAll('.bowling-card');
-            let activePeople = 0;
-            activeCards.forEach(card => {
-                const inputs = card.querySelectorAll('input');
-                let hasVal = false;
-                inputs.forEach(i => { if(parseInt(i.value) > 0) hasVal = true; });
-                if(hasVal) activePeople++;
-            });
-
-            if(totalPeopleSpan) totalPeopleSpan.innerText = activePeople; 
+            if(totalPeopleSpan) totalPeopleSpan.innerText = people; 
             if(totalGamesSpan) totalGamesSpan.innerText = games;
         }
         inputs.forEach(input => input.addEventListener('input', updateSummary));

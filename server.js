@@ -103,16 +103,15 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 5. Record Logic (🔥 FIX: Robust Error Handling)
+// 5. Record Logic (🔥 UPDATE: Bowling Pool vs Cash Logic)
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
-    const { games, guestGames, selectedUsers, totalCost, guests } = req.body; 
+    const { games, usePool, selectedUsers, totalCost, guests } = req.body; // 🔥 接收 usePool
     
     const recordTime = new Date(); 
-    const cost = parseFloat(totalCost); // Could be NaN
+    const cost = parseFloat(totalCost);
 
     try {
-        // 🔥 驗證總金額 (必須是數字且 > 0)
         if (isNaN(cost) || cost <= 0) {
             console.log("Validation Error: Invalid Total Cost");
             return res.redirect(`/activity/${activityId}`);
@@ -122,33 +121,18 @@ app.post('/activity/:id/record', async (req, res) => {
         const activity = actRes.rows[0];
 
         if (activity.type === 'bowling') {
-            // Bowling Mode Logic
             if (!games) return res.redirect(`/activity/${activityId}`);
             
             let totalGamesPlayed = 0;
             let userGameMap = {};
 
-            // 1. 統計會員局數
+            // 統計局數 (不管有無夾 pool 都要計入分母)
             for (const [key, countStr] of Object.entries(games)) {
                 const count = parseInt(countStr) || 0;
                 if (count > 0) {
                     const userId = parseInt(key.replace('uid_', ''));
-                    if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
-                    userGameMap[userId].member = count;
+                    userGameMap[userId] = count;
                     totalGamesPlayed += count;
-                }
-            }
-
-            // 2. 統計訪客局數
-            if (guestGames) {
-                for (const [key, countStr] of Object.entries(guestGames)) {
-                    const count = parseInt(countStr) || 0;
-                    if (count > 0) {
-                        const userId = parseInt(key.replace('uid_', ''));
-                        if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
-                        userGameMap[userId].guest = count;
-                        totalGamesPlayed += count;
-                    }
                 }
             }
 
@@ -156,26 +140,32 @@ app.post('/activity/:id/record', async (req, res) => {
 
             const costPerGame = cost / totalGamesPlayed;
 
-            // 3. 寫入資料庫
-            for (const [userIdStr, counts] of Object.entries(userGameMap)) {
+            // 寫入資料庫
+            for (const [userIdStr, count] of Object.entries(userGameMap)) {
                 const userId = parseInt(userIdStr);
-                const memberCost = counts.member * costPerGame; // 只扣會員
+                const myCost = count * costPerGame;
                 
-                let desc = `打波 ${counts.member} 局`;
-                if (counts.guest > 0) desc += ` [Guest: ${counts.guest}局]`;
-                desc += ` (共$${cost.toFixed(1)})`;
+                // 檢查是否夾 Pool (usePool[uid_1] == 'on')
+                // 如果 checkbox 無剔，body 入面就唔會有 usePool[uid_1]
+                const isPooling = usePool && usePool[`uid_${userId}`] === 'on';
 
-                // 即使 memberCost 是 0 (只幫 guest 打)，也要記錄
-                await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
-                    [activityId, userId, -memberCost, desc, recordTime]);
-                
-                if (memberCost > 0) {
-                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [memberCost, userId]);
+                if (isPooling) {
+                    // ✅ 夾 Pool -> 正常扣數
+                    const desc = `打波 ${count} 局 (共$${cost.toFixed(1)})`;
+                    await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
+                        [activityId, userId, -myCost, desc, recordTime]);
+                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, userId]);
+                } else {
+                    // 💵 俾 Cash -> 紀錄 $0，但在描述備註
+                    const desc = `打波 ${count} 局 (現金自付: $${myCost.toFixed(1)})`;
+                    await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', 0, $3, $4)", 
+                        [activityId, userId, desc, recordTime]);
+                    // 不更新 balance
                 }
             }
 
         } else {
-            // Pickleball Mode Logic (Weighted)
+            // ... (Pickleball logic 保持不變) ...
             let userIds = [];
             if (Array.isArray(selectedUsers)) userIds = selectedUsers;
             else if (selectedUsers) userIds = [selectedUsers];
