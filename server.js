@@ -104,10 +104,10 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 5. Record Logic (🔥 UPDATE: Bowling uses Total Cost now)
+// 5. Record Logic (🔥 UPDATE: Bowling Guest Logic)
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
-    const { games, selectedUsers, totalCost, guests } = req.body; 
+    const { games, guestGames, selectedUsers, totalCost, guests } = req.body; // 🔥 接收 guestGames
     
     const recordTime = new Date(); 
     const cost = parseFloat(totalCost);
@@ -119,36 +119,63 @@ app.post('/activity/:id/record', async (req, res) => {
         if (activity.type === 'bowling') {
             if (!games || cost <= 0) return res.redirect(`/activity/${activityId}`);
             
-            // 1. 計算總局數
+            // 1. 計算總局數 (會員 + 訪客)
             let totalGamesPlayed = 0;
             let userGameMap = {};
 
+            // 處理會員局數
             for (const [key, countStr] of Object.entries(games)) {
-                const gameCount = parseInt(countStr);
-                if (!isNaN(gameCount) && gameCount > 0) {
+                const count = parseInt(countStr);
+                if (!isNaN(count) && count > 0) {
                     const userId = parseInt(key.replace('uid_', ''));
-                    userGameMap[userId] = gameCount;
-                    totalGamesPlayed += gameCount;
+                    if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
+                    userGameMap[userId].member = count;
+                    totalGamesPlayed += count;
                 }
             }
 
-            // 2. 計算每局單價 & 分配
+            // 處理訪客局數 (如果有)
+            if (guestGames) {
+                for (const [key, countStr] of Object.entries(guestGames)) {
+                    const count = parseInt(countStr);
+                    if (!isNaN(count) && count > 0) {
+                        const userId = parseInt(key.replace('uid_', ''));
+                        if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
+                        userGameMap[userId].guest = count;
+                        totalGamesPlayed += count;
+                    }
+                }
+            }
+
+            // 2. 計算單價 & 扣錢
             if (totalGamesPlayed > 0) {
                 const costPerGame = cost / totalGamesPlayed;
 
-                for (const [userId, gameCount] of Object.entries(userGameMap)) {
-                    const myCost = gameCount * costPerGame;
-                    // Description 格式: "打波 3 局 (共$120.0)"
-                    const desc = `打波 ${gameCount} 局 (共$${cost.toFixed(1)})`;
+                for (const [userIdStr, counts] of Object.entries(userGameMap)) {
+                    const userId = parseInt(userIdStr);
+                    // 🔥 只扣會員打嗰份
+                    const memberCost = counts.member * costPerGame;
                     
-                    await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
-                        [activityId, userId, -myCost, desc, recordTime]);
-                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, userId]);
+                    if (memberCost > 0 || counts.guest > 0) {
+                        let desc = `打波 ${counts.member} 局`;
+                        if (counts.guest > 0) {
+                            desc += ` [Guest: ${counts.guest}局]`;
+                        }
+                        desc += ` (共$${cost.toFixed(1)})`;
+
+                        // 如果只有 guest 打 (member 0)，照樣記錄 $0，方便 history 睇返
+                        await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
+                            [activityId, userId, -memberCost, desc, recordTime]);
+                        
+                        if (memberCost > 0) {
+                            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [memberCost, userId]);
+                        }
+                    }
                 }
             }
 
         } else {
-            // --- Pickleball Mode (Weighted) ---
+            // ... (Pickleball logic remains same) ...
             let userIds = [];
             if (Array.isArray(selectedUsers)) userIds = selectedUsers;
             else if (selectedUsers) userIds = [selectedUsers];
