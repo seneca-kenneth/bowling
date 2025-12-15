@@ -74,7 +74,6 @@ app.get('/', async (req, res) => {
 app.post('/create-activity', async (req, res) => {
     const { name, cost, type } = req.body;
     const activityType = type || 'bowling';
-    // 🔥 UPDATE: Force cost to 0 if not provided
     await query("INSERT INTO activities (name, cost_per_game, type) VALUES ($1, $2, $3)", 
         [name, parseFloat(cost) || 0, activityType]);
     res.redirect('/');
@@ -104,7 +103,7 @@ app.get('/activity/:id', async (req, res) => {
     }
 });
 
-// 5. Record Logic (🔥 UPDATE: Better Description Format)
+// 5. Record Logic
 app.post('/activity/:id/record', async (req, res) => {
     const activityId = req.params.id;
     const { games, guestGames, selectedUsers, totalCost, guests } = req.body; 
@@ -113,17 +112,18 @@ app.post('/activity/:id/record', async (req, res) => {
     const cost = parseFloat(totalCost); 
 
     try {
-        if (isNaN(cost) || cost <= 0) return res.redirect(`/activity/${activityId}`);
+        if (isNaN(cost) || cost <= 0) {
+            console.log("Validation Error: Invalid Total Cost");
+            return res.redirect(`/activity/${activityId}`);
+        }
 
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
         const activity = actRes.rows[0];
 
         if (activity.type === 'bowling') {
-            const guestCount = parseInt(guestGames) || 0;
+            if (!games && !guestGames) return res.redirect(`/activity/${activityId}`);
             
-            if (!games && guestCount === 0) return res.redirect(`/activity/${activityId}`);
-            
-            let totalGamesPlayed = guestCount;
+            let totalGamesPlayed = 0;
             let userGameMap = {};
 
             if (games) {
@@ -131,35 +131,44 @@ app.post('/activity/:id/record', async (req, res) => {
                     const count = parseInt(countStr) || 0;
                     if (count > 0) {
                         const userId = parseInt(key.replace('uid_', ''));
-                        userGameMap[userId] = count;
+                        if (!userGameMap[userId]) userGameMap[userId] = { member: 0, guest: 0 };
+                        userGameMap[userId].member = count;
                         totalGamesPlayed += count;
                     }
+                }
+            }
+
+            if (guestGames) {
+                const count = parseInt(guestGames) || 0;
+                if (count > 0) {
+                    // Just add to total, no specific user map needed for guest-only
+                    totalGamesPlayed += count;
                 }
             }
 
             if (totalGamesPlayed === 0) return res.redirect(`/activity/${activityId}`);
 
             const costPerGame = cost / totalGamesPlayed;
+            const guestCount = parseInt(guestGames) || 0;
 
-            // 寫入
-            for (const [userIdStr, count] of Object.entries(userGameMap)) {
+            for (const [userIdStr, counts] of Object.entries(userGameMap)) {
                 const userId = parseInt(userIdStr);
-                const myCost = count * costPerGame;
+                const memberCost = counts.member * costPerGame;
                 
-                // 🔥 Description 格式: "打波 3 局 [Guest: 2] (共$100.0)"
-                // 這樣方便之後 Regex 讀取
-                let desc = `打波 ${count} 局`;
-                if (guestCount > 0) desc += ` [Guest: ${guestCount}]`; 
-                desc += ` (共$${cost.toFixed(1)})`;
+                let desc = `打波 ${counts.member} 局`;
+                if (guestCount > 0) desc += ` [Guest: ${guestCount}局]`;
+                // 🔥 UPDATE: toFixed(2)
+                desc += ` (共$${cost.toFixed(2)})`;
 
                 await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
-                    [activityId, userId, -myCost, desc, recordTime]);
+                    [activityId, userId, -memberCost, desc, recordTime]);
                 
-                await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, userId]);
+                if (memberCost > 0) {
+                    await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [memberCost, userId]);
+                }
             }
 
         } else {
-            // ... (Pickleball logic 保持不變) ...
             let userIds = [];
             if (Array.isArray(selectedUsers)) userIds = selectedUsers;
             else if (selectedUsers) userIds = [selectedUsers];
@@ -181,11 +190,17 @@ app.post('/activity/:id/record', async (req, res) => {
             
             if (totalHeads > 0) {
                 const perHeadCost = cost / totalHeads;
+                
                 for (const userId of userIds) {
                     const myHeads = userHeadsMap[userId];
                     const myCost = perHeadCost * myHeads;
-                    let desc = `夾場租 (共$${cost})`;
-                    if (myHeads > 1) desc += ` [${myHeads-1}訪客]`;
+
+                    // 🔥 UPDATE: toFixed(2)
+                    let desc = `夾場租 (共$${cost.toFixed(2)})`;
+                    if (myHeads > 1) {
+                        desc += ` [${myHeads-1}訪客]`;
+                    }
+
                     await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
                         [activityId, userId, -myCost, desc, recordTime]);
                     await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, userId]);
@@ -200,7 +215,7 @@ app.post('/activity/:id/record', async (req, res) => {
     }
 });
 
-// 6. Deposit (Keep same)
+// 6. Deposit
 app.post('/activity/:id/deposit', async (req, res) => {
     const activityId = req.params.id;
     const { userId, amount } = req.body;
@@ -212,7 +227,7 @@ app.post('/activity/:id/deposit', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 7. Add User (Keep same)
+// 7. Add User
 app.post('/activity/:id/add-user', async (req, res) => {
     const activityId = req.params.id;
     if(req.body.name) {
@@ -225,7 +240,6 @@ app.post('/activity/:id/add-user', async (req, res) => {
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
     const { name, cost, threshold } = req.body;
-    // 🔥 UPDATE: Force cost to 0 if not provided
     await query("UPDATE activities SET name = $1, cost_per_game = $2, alert_threshold = $3 WHERE id = $4", 
         [name, parseFloat(cost)||0, parseFloat(threshold)||200, activityId]);
     res.redirect(`/activity/${activityId}?open=true`);
@@ -243,7 +257,7 @@ app.get('/activity/:id/history', async (req, res) => {
             ORDER BY t.date DESC`;
         const transRes = await query(sql, [activityId]);
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
-        const usersRes = await query("SELECT * FROM users WHERE activity_id = $1 ORDER BY name ASC", [activityId]); // For dropdowns
+        const usersRes = await query("SELECT * FROM users WHERE activity_id = $1 ORDER BY name ASC", [activityId]); 
         
         const groups = {};
         transRes.rows.forEach(t => {
@@ -270,7 +284,7 @@ app.get('/activity/:id/history', async (req, res) => {
         res.render('history', { 
             groupedTransactions: groupArray,
             activity: actRes.rows[0],
-            users: usersRes.rows // Pass users for edit modal
+            users: usersRes.rows
         });
     } catch (err) {
         console.error(err);
@@ -278,7 +292,7 @@ app.get('/activity/:id/history', async (req, res) => {
     }
 });
 
-// 10. Users Page (Keep same)
+// 10. Users Page
 app.get('/activity/:id/users', async (req, res) => {
     const activityId = req.params.id;
     try {
@@ -292,7 +306,7 @@ app.get('/activity/:id/users', async (req, res) => {
     }
 });
 
-// 11. Share Page (Keep same)
+// 11. Share Page
 app.get('/activity/:id/share', async (req, res) => {
     const activityId = req.params.id;
     try {
@@ -312,33 +326,103 @@ app.get('/activity/:id/share', async (req, res) => {
     }
 });
 
-// 🔥 NEW API: Get Session Details (For Edit Modal)
+// 12. Update Group Total
+app.post('/activity/:id/update-group-total', async (req, res) => {
+    const activityId = req.params.id;
+    const { timestamp, newTotal } = req.body;
+    const totalCost = parseFloat(newTotal);
+
+    try {
+        const siblingsRes = await query(`
+            SELECT * FROM transactions 
+            WHERE activity_id = $1 AND date = $2 AND type != 'void'`, 
+            [activityId, timestamp]
+        );
+        const records = siblingsRes.rows;
+
+        if (records.length === 0 || isNaN(totalCost) || totalCost <= 0) {
+            return res.redirect(`/activity/${activityId}/history`);
+        }
+
+        const isBowling = records[0].description.includes('打波');
+        const isPickle = records[0].description.includes('夾場租');
+
+        for (const t of records) {
+            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(t.amount), t.user_id]);
+            await query("DELETE FROM transactions WHERE id = $1", [t.id]);
+        }
+
+        if (isPickle) {
+            let totalHeads = 0;
+            let userHeadsMap = {};
+            records.forEach(r => {
+                const guestMatch = r.description.match(/\[(\d+)訪客\]/);
+                const g = guestMatch ? parseInt(guestMatch[1]) : 0;
+                const heads = 1 + g;
+                userHeadsMap[r.user_id] = heads;
+                totalHeads += heads;
+            });
+            const perHeadCost = totalCost / totalHeads;
+            for (const r of records) {
+                const myHeads = userHeadsMap[r.user_id];
+                const myCost = perHeadCost * myHeads;
+                // 🔥 UPDATE: toFixed(2)
+                let desc = `夾場租 (共$${totalCost.toFixed(2)})`;
+                if (myHeads > 1) desc += ` [${myHeads-1}訪客]`;
+                await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
+                    [activityId, r.user_id, -myCost, desc, timestamp]);
+                await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, r.user_id]);
+            }
+        }
+        res.redirect(`/activity/${activityId}/history`);
+    } catch (err) {
+        console.error(err);
+        res.redirect(`/activity/${activityId}/history`);
+    }
+});
+
+// 13. Soft Delete
+app.post('/activity/:id/delete-transaction', async (req, res) => {
+    const activityId = req.params.id;
+    const { id } = req.body;
+    try {
+        const transRes = await query("SELECT * FROM transactions WHERE id = $1", [id]);
+        const targetTrans = transRes.rows[0];
+
+        if (targetTrans) {
+            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(targetTrans.amount), targetTrans.user_id]);
+            const newDesc = `[已刪除] ${targetTrans.description}`;
+            await query("UPDATE transactions SET type = 'void', amount = 0, description = $1 WHERE id = $2", [newDesc, id]);
+        }
+        res.redirect(`/activity/${activityId}/history`);
+    } catch (err) {
+        console.error(err);
+        res.redirect(`/activity/${activityId}/history`);
+    }
+});
+
+app.post('/activity/:id/edit-user', async (req, res) => { await query("UPDATE users SET name = $1 WHERE id = $2", [req.body.name, req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
+app.post('/activity/:id/delete-user', async (req, res) => { await query("DELETE FROM users WHERE id = $1", [req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
+
+// 🔥 NEW: API for Bowling Edit
 app.get('/activity/:id/session/:timestamp/details', async (req, res) => {
     const { id, timestamp } = req.params;
     try {
-        const result = await query(`
-            SELECT user_id, description, amount FROM transactions 
-            WHERE activity_id = $1 AND date = $2 AND type != 'void'`, 
-            [id, timestamp]
-        );
+        const result = await query(`SELECT user_id, description, amount FROM transactions WHERE activity_id = $1 AND date = $2 AND type != 'void'`, [id, timestamp]);
         
         let totalCost = 0;
         let guestGames = 0;
         let userGames = {};
 
-        // Parse data
         result.rows.forEach(r => {
-            totalCost += Math.abs(parseFloat(r.amount));
-            
-            // Bowling Parse: "打波 3 局 [Guest: 2] (共$100.0)"
+            // Find total cost from description to avoid rounding errors
+            const costMatch = r.description.match(/共\$(\d+(\.\d+)?)/);
+            if(costMatch) totalCost = parseFloat(costMatch[1]);
+
             const gameMatch = r.description.match(/打波 (\d+) 局/);
             if (gameMatch) userGames[r.user_id] = parseInt(gameMatch[1]);
-
-            // Guest Count is redundant in all descriptions, just pick one (max)
-            const guestMatch = r.description.match(/\[Guest: (\d+)\]/);
-            if (guestMatch) {
-                guestGames = Math.max(guestGames, parseInt(guestMatch[1]));
-            }
+            const guestMatch = r.description.match(/Guest: (\d+)局/);
+            if (guestMatch) guestGames = Math.max(guestGames, parseInt(guestMatch[1]));
         });
 
         res.json({ totalCost, guestGames, userGames });
@@ -348,7 +432,7 @@ app.get('/activity/:id/session/:timestamp/details', async (req, res) => {
     }
 });
 
-// 🔥 NEW: Update Bowling Session (Complex Recalc)
+// 🔥 NEW: Update Bowling Session
 app.post('/activity/:id/update-bowling-session', async (req, res) => {
     const activityId = req.params.id;
     const { timestamp, totalCost, guestGames, userGames } = req.body;
@@ -356,14 +440,12 @@ app.post('/activity/:id/update-bowling-session', async (req, res) => {
     const guestCount = parseInt(guestGames) || 0;
 
     try {
-        // 1. Wipe Old
         const oldRecords = await query("SELECT * FROM transactions WHERE activity_id = $1 AND date = $2 AND type != 'void'", [activityId, timestamp]);
         for (const t of oldRecords.rows) {
             await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(t.amount), t.user_id]);
             await query("DELETE FROM transactions WHERE id = $1", [t.id]);
         }
 
-        // 2. Recalculate
         let totalGamesPlayed = guestCount;
         let userGameMap = {};
 
@@ -385,90 +467,21 @@ app.post('/activity/:id/update-bowling-session', async (req, res) => {
                 const myCost = count * costPerGame;
                 
                 let desc = `打波 ${count} 局`;
-                if (guestCount > 0) desc += ` [Guest: ${guestCount}]`; 
-                desc += ` (共$${cost.toFixed(1)})`;
+                if (guestCount > 0) desc += ` [Guest: ${guestCount}局]`; 
+                // 🔥 UPDATE: toFixed(2)
+                desc += ` (共$${cost.toFixed(2)})`;
 
                 await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
                     [activityId, userId, -myCost, desc, timestamp]);
                 await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, userId]);
             }
         }
-
         res.redirect(`/activity/${activityId}/history`);
     } catch (err) {
         console.error(err);
         res.redirect(`/activity/${activityId}/history`);
     }
 });
-
-// 12. Update Group Total (Pickleball Only now - Simple weighted recalc)
-app.post('/activity/:id/update-group-total', async (req, res) => {
-    // ... (Keep existing Logic for Pickleball)
-    // 為了節省篇幅，請保留原有 Step 12 的 Pickleball 部分
-    // Bowling 已經由 update-bowling-session 接手
-    const activityId = req.params.id;
-    const { timestamp, newTotal } = req.body;
-    const totalCost = parseFloat(newTotal);
-
-    try {
-        const siblingsRes = await query(`SELECT * FROM transactions WHERE activity_id = $1 AND date = $2 AND type != 'void'`, [activityId, timestamp]);
-        const records = siblingsRes.rows;
-        if (records.length === 0) return res.redirect(`/activity/${activityId}/history`);
-
-        // Wipe old
-        for (const t of records) {
-            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(t.amount), t.user_id]);
-            await query("DELETE FROM transactions WHERE id = $1", [t.id]);
-        }
-
-        // Recalc (Assuming Pickleball logic here for simplicity as Bowling uses the other route)
-        let totalHeads = 0;
-        let userHeadsMap = {};
-        records.forEach(r => {
-            const guestMatch = r.description.match(/\[(\d+)訪客\]/);
-            const g = guestMatch ? parseInt(guestMatch[1]) : 0;
-            const heads = 1 + g;
-            userHeadsMap[r.user_id] = heads;
-            totalHeads += heads;
-        });
-        const perHeadCost = totalCost / totalHeads;
-        for (const r of records) {
-            const myHeads = userHeadsMap[r.user_id];
-            const myCost = perHeadCost * myHeads;
-            let desc = `夾場租 (共$${totalCost})`;
-            if (myHeads > 1) desc += ` [${myHeads-1}訪客]`;
-            await query("INSERT INTO transactions (activity_id, user_id, type, amount, description, date) VALUES ($1, $2, 'expense', $3, $4, $5)", 
-                [activityId, r.user_id, -myCost, desc, timestamp]);
-            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [myCost, r.user_id]);
-        }
-        res.redirect(`/activity/${activityId}/history`);
-    } catch (err) {
-        console.error(err);
-        res.redirect(`/activity/${activityId}/history`);
-    }
-});
-
-// 13. Soft Delete
-app.post('/activity/:id/delete-transaction', async (req, res) => {
-    const activityId = req.params.id;
-    const { id } = req.body;
-    try {
-        const transRes = await query("SELECT * FROM transactions WHERE id = $1", [id]);
-        const targetTrans = transRes.rows[0];
-        if (targetTrans) {
-            await query("UPDATE users SET balance = balance - $1 WHERE id = $2", [parseFloat(targetTrans.amount), targetTrans.user_id]);
-            const newDesc = `[已刪除] ${targetTrans.description}`;
-            await query("UPDATE transactions SET type = 'void', amount = 0, description = $1 WHERE id = $2", [newDesc, id]);
-        }
-        res.redirect(`/activity/${activityId}/history`);
-    } catch (err) {
-        console.error(err);
-        res.redirect(`/activity/${activityId}/history`);
-    }
-});
-
-app.post('/activity/:id/edit-user', async (req, res) => { await query("UPDATE users SET name = $1 WHERE id = $2", [req.body.name, req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
-app.post('/activity/:id/delete-user', async (req, res) => { await query("DELETE FROM users WHERE id = $1", [req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
 
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => console.log(`App running on port ${PORT}`));

@@ -66,7 +66,7 @@
                         <div class="small text-muted"><%= group.date.toISOString().substring(11, 16) %></div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
-                        <span class="fs-5 fw-bold text-dark">$<%= group.total.toFixed(1) %></span>
+                        <span class="fs-5 fw-bold text-dark">$<%= group.total.toFixed(2) %></span>
                         <% if(group.type === 'expense') { %>
                             <button class="btn btn-sm btn-outline-secondary py-0 px-2" 
                                 onclick="handleEdit('<%= group.timestamp %>', '<%= group.total %>', <%= group.isBowling %>)">✏️</button>
@@ -85,10 +85,10 @@
                                     </td>
                                     <td class="text-end pe-3 table-text-small">
                                         <% if(t.type === 'void') { %>
-                                            $0.0
+                                            $0.00
                                         <% } else { %>
                                             <span class="<%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>">
-                                                <%= t.amount.toFixed(1) %>
+                                                <%= t.amount.toFixed(2) %>
                                             </span>
                                         <% } %>
                                         
@@ -120,7 +120,7 @@
                     <div class="modal-body">
                         <input type="hidden" name="timestamp" id="editGroupTimestamp">
                         <label class="form-label">新總金額 ($)</label>
-                        <input type="number" step="0.1" name="newTotal" id="editGroupTotal" class="form-control" required>
+                        <input type="number" step="0.01" name="newTotal" id="editGroupTotal" class="form-control" required>
                     </div>
                     <div class="modal-footer">
                         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
@@ -144,7 +144,7 @@
                         
                         <div class="mb-3">
                             <label class="form-label fw-bold">總金額 ($)</label>
-                            <input type="number" step="0.1" name="totalCost" id="bowlingTotalCost" class="form-control" required>
+                            <input type="number" step="0.01" name="totalCost" id="bowlingTotalCost" class="form-control" required>
                         </div>
 
                         <div class="mb-3">
@@ -197,15 +197,12 @@
 
     function handleEdit(timestamp, total, isBowling) {
         if (isBowling) {
-            // Open Advanced Bowling Editor
             document.getElementById('bowlingTimestamp').value = timestamp;
             document.getElementById('bowlingTotalCost').value = total;
-            
-            // Clear inputs first
             document.getElementById('bowlingGuestGames').value = '';
             document.querySelectorAll('[id^="user-game-"]').forEach(el => el.value = '');
 
-            // Fetch details via API
+            // 🔥 FIX: 使用 Backticks (`) 以確保 ${timestamp} 正常運作
             fetch(`/activity/<%= activity.id %>/session/${timestamp}/details`)
                 .then(res => res.json())
                 .then(data => {
@@ -219,7 +216,6 @@
                     editBowlingModal.show();
                 });
         } else {
-            // Open Simple Group Editor (Pickleball)
             document.getElementById('editGroupTimestamp').value = timestamp;
             document.getElementById('editGroupTotal').value = total;
             editGroupModal.show();
