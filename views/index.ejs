@@ -15,6 +15,9 @@
         .btn-outline-primary:hover { background-color: #388697; color: white; }
         .user-card.active { background-color: #e7f1ff; border-color: #388697; }
         
+        /* 🔥 FIX: Standard Navbar Height */
+        .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
+
         /* Bowling Card */
         .bowling-card {
             background-color: white; border: 1px solid #eee; transition: all 0.2s;
@@ -38,19 +41,12 @@
         .split-info { height: 24px; visibility: hidden; font-weight: bold; font-size: 1.1rem; color: white; }
 
         body { padding-bottom: 80px; background-color: #f8f9fa; margin: 0; padding-top: 0; }
-        .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; }
         .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; }
         .balance-num { font-family: monospace; font-weight: bold; }
         .neg-bal { color: #dc3545; }
         .pos-bal { color: #198754; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
         
-        /* Switch Customization */
-        .form-check-input:checked {
-            background-color: #388697;
-            border-color: #388697;
-        }
-
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -114,7 +110,6 @@
     <form action="/activity/<%= activity.id %>/record" method="POST" id="gameForm">
         
         <% if (!activity.type || activity.type === 'bowling') { %>
-            
             <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
                 <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg">
@@ -130,43 +125,47 @@
 
             <div class="row g-2">
                 <% users.forEach(user => { %>
-                    <div class="col-6 col-md-4">
+                    <div class="col-12 col-md-6">
                         <div class="bowling-card" id="card-<%= user.id %>">
                             <div class="d-flex justify-content-between align-items-center mb-2">
                                 <div class="fw-bold fs-5 text-truncate" style="max-width: 60%;"><%= user.name %></div>
                                 <div class="balance-num small <%= user.balance < 0 ? 'neg-bal' : 'pos-bal' %>">$<%= user.balance.toFixed(2) %></div>
                             </div>
                             
-                            <div class="input-group mb-2">
-                                <span class="input-group-text bg-light border-0 small text-muted">局</span>
-                                <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" 
-                                       name="games[uid_<%= user.id %>]" 
-                                       class="form-control text-center fw-bold game-input" 
-                                       placeholder="0" data-userid="<%= user.id %>">
-                            </div>
-
-                            <div class="form-check form-switch d-flex justify-content-between align-items-center ps-0">
-                                <label class="form-check-label small text-muted" for="pool-<%= user.id %>">夾 Pool</label>
-                                <input class="form-check-input ms-2" type="checkbox" role="switch" 
-                                       id="pool-<%= user.id %>" name="usePool[uid_<%= user.id %>]" checked>
+                            <div class="d-flex gap-2 align-items-end">
+                                <div class="w-50">
+                                    <label class="small text-muted mb-1" style="font-size: 0.75rem;">Member (扣數)</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-primary text-white border-primary">👤</span>
+                                        <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" 
+                                               name="games[uid_<%= user.id %>]" 
+                                               class="form-control text-center fw-bold game-input border-primary" 
+                                               placeholder="0" data-userid="<%= user.id %>">
+                                    </div>
+                                </div>
+                                <div class="w-50">
+                                    <label class="small text-muted mb-1" style="font-size: 0.75rem;">Guest (Cash)</label>
+                                    <div class="input-group input-group-sm">
+                                        <span class="input-group-text bg-secondary text-white border-secondary">👥</span>
+                                        <input type="number" inputmode="numeric" pattern="[0-9]*" step="1" min="0" 
+                                               name="guestGames[uid_<%= user.id %>]" 
+                                               class="form-control text-center text-muted fw-bold game-input border-secondary" 
+                                               placeholder="0" data-userid="<%= user.id %>">
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 <% }) %>
             </div>
             <div style="height: 60px;"></div>
-            <div class="sticky-footer d-flex gap-2 justify-content-between align-items-center border-top">
-                <div class="small text-muted"><span id="totalPeople">0</span> <span data-i18n="txt_people">人</span> / <span id="totalGames">0</span> <span data-i18n="txt_games">局</span></div>
-                <button type="submit" class="btn btn-primary px-5 fw-bold shadow" data-i18n="btn_deduct">扣數</button>
-            </div>
 
         <% } else { %>
             <div class="card card-body bg-white mb-3 shadow-sm sticky-top border-0 border-bottom" style="top: 0; z-index: 900;">
                 <label class="form-label fw-bold text-primary" data-i18n="label_total_cost">是次總數 ($)</label>
                 <div class="input-group input-group-lg mb-2">
                     <span class="input-group-text bg-primary text-white border-0">$</span>
-                    <input type="number" step="0.1" name="totalCost" id="totalCostInput" 
-                           class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
+                    <input type="number" step="0.1" name="totalCost" id="totalCostInput" class="form-control fw-bold fs-4" value="45.2" required oninput="updateSplit()">
                     <button class="btn btn-primary px-3" data-i18n="btn_confirm">確認</button>
                 </div>
                 <div class="d-flex justify-content-between align-items-center">
@@ -202,80 +201,19 @@
 <script>
     const translations = {
         zh: {
-            menu_members: "會員管理",
-            menu_history: "歷史紀錄",
-            menu_settings: "設定",
-            menu_share: "分享連結 (只讀)",
-            settings_title: "設定",
-            label_activity_name: "活動名稱",
-            label_total_cost: "是次總數 ($)",
-            label_cost: "每局金額",
-            label_threshold: "低餘額提醒 $",
-            btn_save_settings: "保存設定",
-            btn_confirm: "確認",
-            alert_balance: "餘額不足",
-            btn_reset: "重置",
-            unit_game: "局",
-            txt_select_players: "揀選有份玩的人",
-            btn_toggle_all: "全選 / 清除",
-            txt_people: "人",
-            txt_games: "局",
-            btn_deduct: "扣數"
+            menu_members: "會員管理", menu_history: "歷史紀錄", menu_settings: "設定", menu_share: "分享連結 (只讀)", settings_title: "設定", label_activity_name: "活動名稱", label_total_cost: "是次總數 ($)", label_cost: "每局金額", label_threshold: "低餘額提醒 $", btn_save_settings: "保存設定", btn_confirm: "確認", alert_balance: "餘額不足", btn_reset: "重置", unit_game: "局", txt_select_players: "揀選有份玩的人", btn_toggle_all: "全選 / 清除", txt_people: "人", txt_games: "局", btn_deduct: "扣數"
         },
         en: {
-            menu_members: "Members",
-            menu_history: "History",
-            menu_settings: "Settings",
-            menu_share: "Share Link (Read-only)",
-            settings_title: "Settings",
-            label_activity_name: "Activity Name",
-            label_total_cost: "Total Cost ($)",
-            label_cost: "Cost Per Game",
-            label_threshold: "Alert Threshold $",
-            btn_save_settings: "Save Settings",
-            btn_confirm: "Confirm",
-            alert_balance: "Low Balance",
-            btn_reset: "Reset",
-            unit_game: "G",
-            txt_select_players: "Select Players",
-            btn_toggle_all: "Select/Clear All",
-            txt_people: "Ppl",
-            txt_games: "Gms",
-            btn_deduct: "Submit"
+            menu_members: "Members", menu_history: "History", menu_settings: "Settings", menu_share: "Share Link (Read-only)", settings_title: "Settings", label_activity_name: "Activity Name", label_total_cost: "Total Cost ($)", label_cost: "Cost Per Game", label_threshold: "Alert Threshold $", btn_save_settings: "Save Settings", btn_confirm: "Confirm", alert_balance: "Low Balance", btn_reset: "Reset", unit_game: "G", txt_select_players: "Select Players", btn_toggle_all: "Select/Clear All", txt_people: "Ppl", txt_games: "Gms", btn_deduct: "Submit"
         }
     };
 
     let currentLang = localStorage.getItem('appLang') || 'zh';
-
-    function applyLanguage() {
-        const langData = translations[currentLang];
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (langData[key]) el.innerText = langData[key];
-        });
-        document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
-    }
-
-    function toggleLanguage() {
-        currentLang = currentLang === 'zh' ? 'en' : 'zh';
-        localStorage.setItem('appLang', currentLang);
-        applyLanguage();
-    }
-
+    function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG'; }
+    function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
 
-    function updateGuest(userId, delta) {
-        const input = document.getElementById('guest-input-' + userId);
-        const display = document.getElementById('guest-count-' + userId);
-        const checkbox = document.getElementById('user-' + userId);
-        let val = parseInt(input.value) || 0;
-        val += delta;
-        if (val < 0) val = 0;
-        input.value = val;
-        display.innerText = val;
-        if (val > 0 && !checkbox.checked) checkbox.checked = true;
-        updateSplit();
-    }
+    function updateGuest(userId, delta) { const input = document.getElementById('guest-input-' + userId); const display = document.getElementById('guest-count-' + userId); const checkbox = document.getElementById('user-' + userId); let val = parseInt(input.value) || 0; val += delta; if (val < 0) val = 0; input.value = val; display.innerText = val; if (val > 0 && !checkbox.checked) checkbox.checked = true; updateSplit(); }
 
     const inputs = document.querySelectorAll('.game-input');
     const totalPeopleSpan = document.getElementById('totalPeople');
@@ -293,7 +231,7 @@
                 }
                 
                 if (val > 0) {
-                    people++; 
+                    if(input.name.includes('games[')) people++; 
                     games += val; 
                 }
             });
@@ -303,26 +241,11 @@
         inputs.forEach(input => input.addEventListener('input', updateSummary));
     }
 
-    function resetForm() { 
-        inputs.forEach(i => i.value = ''); 
-        if(totalPeopleSpan) updateSummary(); 
-        document.querySelectorAll('.bowling-card').forEach(c => c.style.borderColor = "#eee");
-    }
-
-    function toggleAll() {
-        const boxes = document.querySelectorAll('.user-checkbox');
-        const allChecked = Array.from(boxes).every(b => b.checked);
-        boxes.forEach(b => b.checked = !allChecked);
-        updateSplit(); 
-    }
-
+    function resetForm() { inputs.forEach(i => i.value = ''); if(totalPeopleSpan) updateSummary(); document.querySelectorAll('.bowling-card').forEach(c => c.style.borderColor = "#eee"); }
+    function toggleAll() { const boxes = document.querySelectorAll('.user-checkbox'); const allChecked = Array.from(boxes).every(b => b.checked); boxes.forEach(b => b.checked = !allChecked); updateSplit(); }
     function updateSplit() {
-        const totalInput = document.getElementById('totalCostInput');
-        if (!totalInput) return; 
-
+        const totalInput = document.getElementById('totalCostInput'); if (!totalInput) return; 
         const checkboxes = document.querySelectorAll('.user-checkbox');
-        const checkedBoxes = document.querySelectorAll('.user-checkbox:checked');
-        
         let totalCost = parseFloat(totalInput.value) || 0;
         let totalHeads = 0;
         let totalGuests = 0;
@@ -339,17 +262,12 @@
 
         const countSpan = document.getElementById('splitCount');
         if (countSpan) {
-            if (totalGuests > 0) {
-                countSpan.innerText = `${checkedBoxes.length} + ${totalGuests} Guest`;
-            } else {
-                countSpan.innerText = checkedBoxes.length;
-            }
+            if (totalGuests > 0) countSpan.innerText = `${document.querySelectorAll('.user-checkbox:checked').length} + ${totalGuests} Guest`;
+            else countSpan.innerText = document.querySelectorAll('.user-checkbox:checked').length;
         }
 
         let costPerHead = 0;
-        if (totalHeads > 0) {
-            costPerHead = totalCost / totalHeads;
-        }
+        if (totalHeads > 0) costPerHead = totalCost / totalHeads;
 
         checkboxes.forEach(cb => {
             const infoDiv = document.getElementById('split-info-' + cb.value);
@@ -364,7 +282,6 @@
             }
         });
     }
-
     updateSplit();
 </script>
 </body>

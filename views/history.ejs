@@ -15,6 +15,10 @@
         .table-text-small { font-size: 0.9rem; }
         .dropdown-item { padding: 10px 15px; font-size: 1rem; }
         .void-row { text-decoration: line-through; color: #adb5bd; }
+        
+        /* 🔥 FIX: Standard Navbar Height */
+        .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
+
         ::-webkit-scrollbar { display: none; }
         html, body { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -139,55 +143,18 @@
 <script>
     const translations = {
         zh: {
-            title_history: "歷史紀錄",
-            no_records: "暫時未有任何交易紀錄。",
-            menu_return: "返回記數",
-            menu_members: "會員管理",
-            modal_edit_total: "修改總金額",
-            label_new_total: "新總金額 ($)",
-            hint_group_update: "系統將根據原本的比例 (局數或訪客權重) 自動重新分配金額給所有人。",
-            btn_cancel: "取消",
-            btn_save: "保存"
+            title_history: "歷史紀錄", no_records: "暫時未有任何交易紀錄。", menu_return: "返回記數", menu_members: "會員管理", modal_edit_total: "修改總金額", label_new_total: "新總金額 ($)", hint_group_update: "系統將根據原本的比例 (局數或訪客權重) 自動重新分配金額給所有人。", btn_cancel: "取消", btn_save: "保存"
         },
         en: {
-            title_history: "History",
-            no_records: "No transaction records yet.",
-            menu_return: "Back to Record",
-            menu_members: "Members",
-            modal_edit_total: "Edit Total Amount",
-            label_new_total: "New Total ($)",
-            hint_group_update: "System will redistribute the new total based on original proportions (games or guests).",
-            btn_cancel: "Cancel",
-            btn_save: "Save"
+            title_history: "History", no_records: "No transaction records yet.", menu_return: "Back to Record", menu_members: "Members", modal_edit_total: "Edit Total Amount", label_new_total: "New Total ($)", hint_group_update: "System will redistribute the new total based on original proportions (games or guests).", btn_cancel: "Cancel", btn_save: "Save"
         }
     };
-
     let currentLang = localStorage.getItem('appLang') || 'zh';
-
-    function applyLanguage() {
-        const langData = translations[currentLang];
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (langData[key]) el.innerText = langData[key];
-        });
-        document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
-    }
-
-    function toggleLanguage() {
-        currentLang = currentLang === 'zh' ? 'en' : 'zh';
-        localStorage.setItem('appLang', currentLang);
-        applyLanguage();
-    }
-
+    function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG'; }
+    function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
-
     const editGroupModal = new bootstrap.Modal(document.getElementById('editGroupModal'));
-
-    function openEditGroup(timestamp, total) {
-        document.getElementById('editGroupTimestamp').value = timestamp;
-        document.getElementById('editGroupTotal').value = total;
-        editGroupModal.show();
-    }
+    function openEditGroup(timestamp, total) { document.getElementById('editGroupTimestamp').value = timestamp; document.getElementById('editGroupTotal').value = total; editGroupModal.show(); }
 </script>
 </body>
 </html>
