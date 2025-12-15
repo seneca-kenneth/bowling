@@ -22,33 +22,16 @@
 
 <nav class="navbar navbar-dark bg-primary mb-4 sticky-top">
     <div class="container-fluid position-relative">
-        <div class="d-flex align-items-center">
-            <span class="navbar-brand mb-0 h1 fs-4">📂</span>
-        </div>
-        <div class="position-absolute top-50 start-50 translate-middle w-50 text-center">
-            <span class="text-white fs-5 fw-bold text-truncate d-block" data-i18n="header_title">記錄</span>
-        </div>
-        <div class="d-flex align-items-center">
-            <div class="dropdown">
-                <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 160px;">
-                    <li>
-                        <button class="dropdown-item" onclick="toggleLanguage()">
-                            🌐 <span id="langLabel">ENG</span>
-                        </button>
-                    </li>
-                </ul>
-            </div>
-        </div>
+        <div class="d-flex align-items-center"><span class="navbar-brand mb-0 h1 fs-4">📂</span></div>
+        <div class="position-absolute top-50 start-50 translate-middle w-50 text-center"><span class="text-white fs-5 fw-bold text-truncate d-block" data-i18n="header_title">記錄</span></div>
+        <div class="d-flex align-items-center"><div class="dropdown"><button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button><ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 160px;"><li><button class="dropdown-item" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button></li></ul></div></div>
     </div>
 </nav>
 
 <div class="container">
     <div class="row g-3 justify-content-center">
         <% if (activities.length === 0) { %>
-            <div class="col-12 text-center text-muted" data-i18n="no_activity">
-                暫時未有活動，請在下方建立一個！
-            </div>
+            <div class="col-12 text-center text-muted" data-i18n="no_activity">暫時未有活動，請在下方建立一個！</div>
         <% } %>
         <% activities.forEach(act => { %>
             <div class="col-12 col-md-6 col-lg-4">
@@ -56,16 +39,7 @@
                     <div class="card shadow-sm hover-shadow h-100">
                         <div class="card-body text-center">
                             <h3 class="card-title text-primary"><%= act.name %></h3>
-                            <p class="badge bg-secondary">
-                                <% if(act.type === 'split') { %>
-                                    <span data-i18n="mode_split">夾錢模式</span>
-                                <% } else { %>
-                                    <span data-i18n="mode_bowling">計局模式</span>
-                                <% } %>
-                            </p>
-                            <% if(act.type !== 'split') { %>
-                                <p class="text-muted mb-0"><span data-i18n="per_game">每局</span>: $<%= parseFloat(act.cost_per_game).toFixed(2) %></p>
-                            <% } %>
+                            <p class="badge bg-secondary"><% if(act.type === 'split') { %><span data-i18n="mode_split">夾錢模式</span><% } else { %><span data-i18n="mode_bowling">計局模式</span><% } %></p>
                         </div>
                     </div>
                 </a>
@@ -75,26 +49,11 @@
 
     <div class="collapse mt-4" id="createActivityBox">
         <div class="card mx-auto shadow-sm border-primary" style="max-width: 500px;">
-            <div class="card-header bg-white text-primary fw-bold text-center" data-i18n="new_activity_title">
-                新活動資料
-            </div>
+            <div class="card-header bg-white text-primary fw-bold text-center" data-i18n="new_activity_title">新活動資料</div>
             <div class="card-body">
                 <form action="/create-activity" method="POST">
-                    <div class="mb-3">
-                        <label class="form-label" data-i18n="label_name">活動名稱</label>
-                        <input type="text" name="name" class="form-control" placeholder="Activity Name" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label" data-i18n="label_type">計費模式</label>
-                        <select name="type" class="form-select" id="activityType" onchange="toggleCostInput()">
-                            <option value="split" data-i18n="opt_split">Pickleball / 食飯 (輸入總數 ÷ 人頭)</option>
-                            <option value="bowling" selected data-i18n="opt_bowling">保齡球 (按局數計 x 單價)</option>
-                        </select>
-                    </div>
-                    <div class="mb-3" id="costContainer">
-                        <label class="form-label" data-i18n="label_default_cost">預設每局金額 (只適用於保齡)</label>
-                        <input type="number" step="0.01" name="cost" class="form-control" value="5.65">
-                    </div>
+                    <div class="mb-3"><label class="form-label" data-i18n="label_name">活動名稱</label><input type="text" name="name" class="form-control" placeholder="Activity Name" required></div>
+                    <div class="mb-3"><label class="form-label" data-i18n="label_type">計費模式</label><select name="type" class="form-select" id="activityType"><option value="split" data-i18n="opt_split">Pickleball / 食飯</option><option value="bowling" selected data-i18n="opt_bowling">保齡球</option></select></div>
                     <button class="btn btn-primary w-100 fw-bold" data-i18n="btn_create_submit">立即建立</button>
                 </form>
             </div>
@@ -104,79 +63,17 @@
 
 <div class="sticky-footer">
     <div class="container" style="max-width: 500px;">
-        <button class="btn btn-primary w-100 py-2 fw-bold shadow-sm fs-5" type="button" 
-                data-bs-toggle="collapse" 
-                data-bs-target="#createActivityBox"
-                onclick="setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300)">
-            ➕ <span data-i18n="btn_create_new">建立新活動</span>
-        </button>
+        <button class="btn btn-primary w-100 py-2 fw-bold shadow-sm fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#createActivityBox" onclick="setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300)">➕ <span data-i18n="btn_create_new">建立新活動</span></button>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const translations = {
-        zh: {
-            header_title: "記錄",
-            no_activity: "暫時未有活動，請在下方建立一個！",
-            mode_split: "夾錢模式",
-            mode_bowling: "計局模式",
-            per_game: "每局",
-            btn_create_new: "建立新活動",
-            new_activity_title: "新活動資料",
-            label_name: "活動名稱",
-            label_type: "計費模式",
-            opt_split: "Pickleball / 食飯 (輸入總數 ÷ 人頭)",
-            opt_bowling: "保齡球 (按局數計 x 單價)",
-            label_default_cost: "預設每局金額 (只適用於保齡)",
-            btn_create_submit: "立即建立"
-        },
-        en: {
-            header_title: "Records",
-            no_activity: "No activities yet. Create one below!",
-            mode_split: "Split Mode",
-            mode_bowling: "Game Mode",
-            per_game: "Per Game",
-            btn_create_new: "New Activity",
-            new_activity_title: "Activity Info",
-            label_name: "Activity Name",
-            label_type: "Billing Type",
-            opt_split: "Pickleball / Split Bill (Total ÷ People)",
-            opt_bowling: "Bowling (Games x Cost)",
-            label_default_cost: "Default Cost Per Game (Bowling only)",
-            btn_create_submit: "Create Now"
-        }
-    };
-
+    const translations = { zh: { header_title: "記錄", no_activity: "暫時未有活動，請在下方建立一個！", mode_split: "夾錢模式", mode_bowling: "計局模式", btn_create_new: "建立新活動", new_activity_title: "新活動資料", label_name: "活動名稱", label_type: "計費模式", opt_split: "Pickleball / 食飯 (輸入總數 ÷ 人頭)", opt_bowling: "保齡球 (按局數計 x 單價)", btn_create_submit: "立即建立" }, en: { header_title: "Records", no_activity: "No activities yet. Create one below!", mode_split: "Split Mode", mode_bowling: "Game Mode", btn_create_new: "New Activity", new_activity_title: "Activity Info", label_name: "Activity Name", label_type: "Billing Type", opt_split: "Pickleball / Split Bill", opt_bowling: "Bowling", btn_create_submit: "Create Now" } };
     let currentLang = localStorage.getItem('appLang') || 'zh';
-
-    function applyLanguage() {
-        const langData = translations[currentLang];
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (langData[key]) el.innerText = langData[key];
-        });
-        document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
-    }
-
-    function toggleLanguage() {
-        currentLang = currentLang === 'zh' ? 'en' : 'zh';
-        localStorage.setItem('appLang', currentLang);
-        applyLanguage();
-    }
-
+    function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG'; }
+    function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
-
-    function toggleCostInput() {
-        const type = document.getElementById('activityType').value;
-        const container = document.getElementById('costContainer');
-        if (type === 'bowling') {
-            container.classList.remove('d-none');
-        } else {
-            container.classList.add('d-none');
-        }
-    }
-    toggleCostInput();
 </script>
 </body>
 </html>

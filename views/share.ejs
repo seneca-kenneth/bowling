@@ -20,7 +20,6 @@
 <nav class="navbar navbar-dark bg-primary mb-3">
     <div class="container-fluid d-flex justify-content-between align-items-center">
         <span class="navbar-brand mb-0 h1 mx-auto"><%= activity.name %></span>
-        
         <button class="btn btn-sm btn-outline-light position-absolute end-0 me-3" onclick="toggleLanguage()">
             🌐 <span id="langLabel">ENG</span>
         </button>
@@ -28,31 +27,19 @@
 </nav>
 
 <div class="container">
-    
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-white fw-bold text-center" data-i18n="title_balance">會員餘額</div>
         <div class="card-body p-0">
             <table class="table table-striped mb-0 text-center">
-                <thead class="table-light">
-                    <tr>
-                        <th data-i18n="th_name">姓名</th>
-                        <th data-i18n="th_balance">餘額</th>
-                    </tr>
-                </thead>
+                <thead class="table-light"><tr><th data-i18n="th_name">姓名</th><th data-i18n="th_balance">餘額</th></tr></thead>
                 <tbody>
                     <% users.forEach(user => { %>
-                        <tr>
-                            <td class="fw-bold"><%= user.name %></td>
-                            <td class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %> fw-bold">
-                                $<%= user.balance.toFixed(1) %>
-                            </td>
-                        </tr>
+                        <tr><td class="fw-bold"><%= user.name %></td><td class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %> fw-bold">$<%= user.balance.toFixed(1) %></td></tr>
                     <% }) %>
                 </tbody>
             </table>
         </div>
     </div>
-
     <div class="card shadow-sm">
         <div class="card-header bg-white fw-bold text-center" data-i18n="title_records">最近紀錄 (20筆)</div>
         <div class="card-body p-0">
@@ -60,70 +47,30 @@
                 <tbody>
                     <% transactions.forEach(t => { %>
                         <tr>
-                            <td class="px-3">
-                                <div><strong><%= t.name || 'Unknown' %></strong></div>
-                                <div class="text-muted" style="font-size: 0.8rem;"><%= t.date.substring(0, 10) %></div>
-                            </td>
-                            <td>
-                                <%= t.description %>
-                                <% if(t.type === 'deposit') { %> 
-                                    <span class="badge bg-success" data-i18n="badge_deposit">入數</span> 
-                                <% } %>
-                            </td>
-                            <td class="text-end px-3 <%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>">
-                                <%= t.amount > 0 ? '+' : '' %><%= t.amount.toFixed(1) %>
-                            </td>
+                            <td class="px-3"><div><strong><%= t.name || 'Unknown' %></strong></div><div class="text-muted" style="font-size: 0.8rem;"><%= t.date.substring(0, 10) %></div></td>
+                            <td><%= t.description %> <% if(t.type === 'deposit') { %> <span class="badge bg-success" data-i18n="badge_deposit">入數</span> <% } %></td>
+                            <td class="text-end px-3 <%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>"><%= t.amount > 0 ? '+' : '' %><%= t.amount.toFixed(1) %></td>
                         </tr>
                     <% }) %>
                 </tbody>
             </table>
         </div>
     </div>
-
-    <div class="text-center mt-4 mb-4 text-muted small">
-        <span data-i18n="footer_note">此頁面僅供查閱，無法進行操作。</span>
-    </div>
-
+    <div class="text-center mt-4 mb-4 text-muted small"><span data-i18n="footer_note">此頁面僅供查閱，無法進行操作。</span></div>
 </div>
 
 <script>
     const translations = {
-        zh: {
-            title_balance: "會員餘額",
-            th_name: "姓名",
-            th_balance: "餘額",
-            title_records: "最近紀錄 (20筆)",
-            badge_deposit: "入數",
-            footer_note: "此頁面僅供查閱，無法進行操作。"
-        },
-        en: {
-            title_balance: "Member Balance",
-            th_name: "Name",
-            th_balance: "Balance",
-            title_records: "Recent Records (20)",
-            badge_deposit: "Deposit",
-            footer_note: "This page is read-only."
-        }
+        zh: { title_balance: "會員餘額", th_name: "姓名", th_balance: "餘額", title_records: "最近紀錄 (20筆)", badge_deposit: "入數", footer_note: "此頁面僅供查閱，無法進行操作。" },
+        en: { title_balance: "Member Balance", th_name: "Name", th_balance: "Balance", title_records: "Recent Records (20)", badge_deposit: "Deposit", footer_note: "This page is read-only." }
     };
-
     let currentLang = localStorage.getItem('appLang') || 'zh';
-
     function applyLanguage() {
         const langData = translations[currentLang];
-        document.querySelectorAll('[data-i18n]').forEach(el => {
-            const key = el.getAttribute('data-i18n');
-            if (langData[key]) el.innerText = langData[key];
-        });
+        document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; });
         document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG';
     }
-
-    function toggleLanguage() {
-        currentLang = currentLang === 'zh' ? 'en' : 'zh';
-        localStorage.setItem('appLang', currentLang);
-        applyLanguage();
-    }
-
-    // Initialize
+    function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
 </script>
 </body>
