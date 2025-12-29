@@ -99,7 +99,7 @@
             <div class="row g-2">
                 <% users.forEach(user => { %>
                     <div class="col-6 col-md-4">
-                        <div class="bowling-card" id="card-<%= user.id %>">
+                        <div class="bowling-card" id="card-<%= user.id %>" data-ispool="<%= user.is_pool_member %>">
                             <div>
                                 <div class="d-flex justify-content-between align-items-center mb-2">
                                     <div class="fw-bold fs-5 text-truncate" style="max-width: 60%;"><%= user.name %></div>
@@ -115,8 +115,12 @@
                                 </div>
                             </div>
                             <div class="d-flex justify-content-between align-items-center mt-2 small pt-2 border-top">
-                                <span class="text-muted">預計:</span>
-                                <span class="fw-bold text-danger est-cost" id="est-<%= user.id %>">-$0.0</span>
+                                <span class="text-muted" id="label-<%= user.id %>">
+                                    <%= user.is_pool_member ? '預計:' : 'Cash:' %>
+                                </span>
+                                <span class="fw-bold <%= user.is_pool_member ? 'text-danger' : 'text-dark' %> est-cost" id="est-<%= user.id %>">
+                                    <%= user.is_pool_member ? '-$0.00' : '$0.00' %>
+                                </span>
                             </div>
                         </div>
                     </div>
@@ -135,7 +139,7 @@
                         </div>
                         <div class="d-flex justify-content-between align-items-center mt-2 small pt-2 border-top border-secondary">
                             <span class="text-muted">Cash:</span>
-                            <span class="fw-bold text-dark" id="est-guest">$0.0</span>
+                            <span class="fw-bold text-dark" id="est-guest">$0.00</span>
                         </div>
                     </div>
                 </div>
@@ -191,6 +195,7 @@
     function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
 
+    // 🔥 NEW: Enhanced Logic for Cash vs Pool Members
     function updateBowlingEstimates() {
         const totalInput = document.getElementById('totalCostInput');
         if (!totalInput) return;
@@ -201,21 +206,44 @@
         const guestInput = document.getElementById('guestGamesInput');
         const guestGames = parseInt(guestInput?.value) || 0;
         totalGames += guestGames;
+        
         const costPerGame = totalGames > 0 ? (totalCost / totalGames) : 0;
+        
         memberInputs.forEach(input => {
             const uid = input.dataset.userid;
             const games = parseInt(input.value) || 0;
             const cost = games * costPerGame;
-            const display = document.getElementById('est-' + uid);
-            if (display) display.innerText = `-$${cost.toFixed(1)}`;
+            
+            // Check if Pool Member
             const card = input.closest('.bowling-card');
+            const isPool = card.dataset.ispool === 'true';
+            const costDisplay = document.getElementById('est-' + uid);
+            const labelDisplay = document.getElementById('label-' + uid);
+
+            if (isPool) {
+                // Deducting
+                costDisplay.innerText = `-$${cost.toFixed(2)}`;
+                costDisplay.classList.remove('text-dark');
+                costDisplay.classList.add('text-danger');
+                if(labelDisplay) labelDisplay.innerText = "預計:";
+            } else {
+                // Paying Cash (Positive/Neutral)
+                costDisplay.innerText = `$${cost.toFixed(2)}`;
+                costDisplay.classList.remove('text-danger');
+                costDisplay.classList.add('text-dark');
+                if(labelDisplay) labelDisplay.innerText = "Cash:";
+            }
+
             if(card) { if(games > 0) card.classList.add('active'); else if(!input.value) card.classList.remove('active'); }
         });
+
+        // Guest Card (Always Cash)
         const guestCost = guestGames * costPerGame;
         const guestDisplay = document.getElementById('est-guest');
-        if (guestDisplay) guestDisplay.innerText = `$${guestCost.toFixed(1)}`;
+        if (guestDisplay) guestDisplay.innerText = `$${guestCost.toFixed(2)}`;
         const guestCard = document.getElementById('card-guest');
         if(guestCard) { if(guestGames > 0) guestCard.classList.add('active'); else if(!guestInput.value) guestCard.classList.remove('active'); }
+        
         let peopleCount = 0;
         memberInputs.forEach(i => { if(parseInt(i.value) > 0) peopleCount++; });
         if(totalGames > 0) { document.getElementById('totalPeople').innerText = peopleCount; document.getElementById('totalGames').innerText = totalGames; } else { document.getElementById('totalPeople').innerText = 0; document.getElementById('totalGames').innerText = 0; }

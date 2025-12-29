@@ -24,7 +24,7 @@
 </head>
 <body class="bg-light">
 
-<nav class="navbar navbar-dark bg-primary mb-3 sticky-top">
+<nav class="navbar navbar-dark bg-primary mb-3">
     <div class="container-fluid position-relative">
         <div class="d-flex align-items-center"><a class="navbar-brand p-0 m-0" href="/activity/<%= activity.id %>"><span class="fs-4">⬅️</span></a></div>
         <div class="position-absolute top-50 start-50 translate-middle w-50 text-center"><div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div></div>
@@ -83,15 +83,27 @@
     applyLanguage();
     var editUserModal = new bootstrap.Modal(document.getElementById('editUserModal')), deleteUserModal = new bootstrap.Modal(document.getElementById('deleteUserModal')), depositModal = new bootstrap.Modal(document.getElementById('depositModal'));
     
-    // 🔥 FIX: JS to auto-fill default value 100 on click
     document.querySelectorAll('.btn-deposit').forEach(b => b.addEventListener('click', function() { 
         document.getElementById('depositUserId').value = this.dataset.id; 
         document.getElementById('depositUserName').innerText = this.dataset.name; 
-        document.getElementById('depositAmount').value = '100'; // Always reset to 100
+        document.getElementById('depositAmount').value = '100'; 
         depositModal.show(); 
     }));
     document.querySelectorAll('.btn-edit-user').forEach(b => b.addEventListener('click', function() { document.getElementById('editUserId').value = this.dataset.id; document.getElementById('editUserName').value = this.dataset.name; editUserModal.show(); }));
     document.querySelectorAll('.btn-delete-user').forEach(b => b.addEventListener('click', function() { document.getElementById('deleteUserId').value = this.dataset.id; document.getElementById('deleteUserName').innerText = this.dataset.name; deleteUserModal.show(); }));
+
+    // 🔥 FIX: Prevent Spam Clicking (Double Submission)
+    document.querySelectorAll('form').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            const btn = form.querySelector('button[type="submit"]');
+            if (btn) {
+                // Disable button immediately to prevent second click
+                btn.disabled = true;
+                // Change text to indicate processing
+                btn.innerText = "處理中...";
+            }
+        });
+    });
 </script>
 </body>
 </html>
