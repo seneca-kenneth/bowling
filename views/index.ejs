@@ -29,7 +29,7 @@
         .balance-box { background-color: #e9ecef; border-radius: 8px; padding: 2px 8px; width: 100%; text-align: center; }
         .guest-btn { width: 25px; height: 25px; padding: 0; line-height: 23px; border-radius: 50%; background: white; color: #388697; border: 1px solid #388697; font-weight: bold; }
         .split-info { height: 24px; visibility: hidden; font-weight: bold; font-size: 1.1rem; color: white; }
-        .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid #eee; }
+        .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 10px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; }
         .balance-num { font-family: monospace; font-weight: bold; }
         .neg-bal { color: #dc3545; }
         .pos-bal { color: #198754; }
@@ -38,6 +38,8 @@
         /* Disabled Input Style */
         input:disabled { background-color: #e9ecef; cursor: not-allowed; }
         .user-checkbox:disabled + .option-card { opacity: 0.6; pointer-events: none; }
+        /* Disabled Button Style (Bootstrap handles this, but ensuring clarity) */
+        .btn:disabled { cursor: not-allowed; opacity: 0.6; }
 
         ::-webkit-scrollbar { display: none; }
     </style>
@@ -161,7 +163,7 @@
                 <div class="small text-muted text-nowrap">
                     <span id="footerTotal" class="fw-bold text-primary fs-5">$0.00</span>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow" id="submitBtn" data-i18n="btn_confirm_deduct">確認扣數</button>
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow" id="submitBtn" data-i18n="btn_confirm_deduct" disabled>確認扣數</button>
             </div>
 
         <% } else { %>
@@ -209,7 +211,7 @@
                 <div class="small text-muted text-nowrap">
                     <span id="footerTotalPickle" class="fw-bold text-primary fs-5">$0.00</span>
                 </div>
-                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow" id="submitBtn" data-i18n="btn_confirm_deduct">確認扣數</button>
+                <button type="submit" class="btn btn-primary w-100 py-2 fw-bold shadow" id="submitBtn" data-i18n="btn_confirm_deduct" disabled>確認扣數</button>
             </div>
         <% } %>
     </form>
@@ -223,29 +225,19 @@
     function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
     applyLanguage();
 
-    // 🔥 NEW: Toggle Inputs based on Total Cost
     function checkInputsEnabled(totalVal) {
         const hasTotal = !isNaN(totalVal) && totalVal > 0;
-        
-        // Bowling inputs
         document.querySelectorAll('.game-input').forEach(el => el.disabled = !hasTotal);
-        
-        // Pickleball inputs
         document.querySelectorAll('.user-checkbox').forEach(el => el.disabled = !hasTotal);
         document.querySelectorAll('.guest-btn').forEach(el => el.disabled = !hasTotal);
+        return hasTotal;
     }
 
     function updateBowlingEstimates() {
         const totalInput = document.getElementById('totalCostInput');
         if (!totalInput) return;
         const totalCost = parseFloat(totalInput.value) || 0;
-        
-        // 🔥 Enable/Disable Logic
-        checkInputsEnabled(totalCost);
-        
-        // Update Footer Display
-        const footerTotal = document.getElementById('footerTotal');
-        if (footerTotal) footerTotal.innerText = `$${totalCost.toFixed(2)}`;
+        const inputsEnabled = checkInputsEnabled(totalCost); // Lock/Unlock inputs
 
         let totalGames = 0;
         const memberInputs = document.querySelectorAll('input[name^="games["]');
@@ -256,28 +248,19 @@
         
         const costPerGame = totalGames > 0 ? (totalCost / totalGames) : 0;
         
+        // Update Displays
         memberInputs.forEach(input => {
             const uid = input.dataset.userid;
             const games = parseInt(input.value) || 0;
             const cost = games * costPerGame;
-            
             const card = input.closest('.bowling-card');
             const isPool = card.dataset.ispool === 'true';
             const costDisplay = document.getElementById('est-' + uid);
-            const labelDisplay = document.getElementById('label-' + uid);
-
             if (isPool) {
                 costDisplay.innerText = `-$${cost.toFixed(2)}`;
-                costDisplay.classList.remove('text-dark');
-                costDisplay.classList.add('text-danger');
-                if(labelDisplay) labelDisplay.innerText = "預計:";
             } else {
                 costDisplay.innerText = `$${cost.toFixed(2)}`;
-                costDisplay.classList.remove('text-danger');
-                costDisplay.classList.add('text-dark');
-                if(labelDisplay) labelDisplay.innerText = "Cash:";
             }
-
             if(card) { if(games > 0) card.classList.add('active'); else if(!input.value) card.classList.remove('active'); }
         });
 
@@ -287,21 +270,27 @@
         const guestCard = document.getElementById('card-guest');
         if(guestCard) { if(guestGames > 0) guestCard.classList.add('active'); else if(!guestInput.value) guestCard.classList.remove('active'); }
         
+        const footerTotal = document.getElementById('footerTotal');
+        if (footerTotal) footerTotal.innerText = `$${totalCost.toFixed(2)}`;
+
+        // 🔥 FIX: Enable/Disable Submit Button based on valid input
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = !(inputsEnabled && totalGames > 0);
+        }
+
         let peopleCount = 0;
         memberInputs.forEach(i => { if(parseInt(i.value) > 0) peopleCount++; });
         if(totalGames > 0) { document.getElementById('totalPeople').innerText = peopleCount; document.getElementById('totalGames').innerText = totalGames; } else { document.getElementById('totalPeople').innerText = 0; document.getElementById('totalGames').innerText = 0; }
     }
 
-    // Pickleball Logic
     function updateGuest(userId, delta) { const input = document.getElementById('guest-input-' + userId); const display = document.getElementById('guest-count-' + userId); const checkbox = document.getElementById('user-' + userId); let val = parseInt(input.value) || 0; val += delta; if (val < 0) val = 0; input.value = val; display.innerText = val; if (val > 0 && !checkbox.checked) checkbox.checked = true; updateSplit(); }
     function toggleAll() { const boxes = document.querySelectorAll('.user-checkbox'); const allChecked = Array.from(boxes).every(b => b.checked); boxes.forEach(b => { if(!b.disabled) b.checked = !allChecked; }); updateSplit(); }
     
     function updateSplit() {
         const totalInput = document.getElementById('totalCostInput'); if (!totalInput) return; 
         const totalCost = parseFloat(totalInput.value) || 0;
-        
-        // 🔥 Enable/Disable Logic
-        checkInputsEnabled(totalCost);
+        const inputsEnabled = checkInputsEnabled(totalCost);
 
         const footerTotal = document.getElementById('footerTotalPickle');
         if (footerTotal) footerTotal.innerText = `$${totalCost.toFixed(2)}`;
@@ -323,6 +312,12 @@
                 infoDiv.style.visibility = 'visible';
             } else { infoDiv.style.visibility = 'hidden'; }
         });
+
+        // 🔥 FIX: Enable/Disable Submit Button based on valid input
+        const submitBtn = document.getElementById('submitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = !(inputsEnabled && totalHeads > 0);
+        }
     }
 
     function resetForm() { 
@@ -333,7 +328,6 @@
         document.querySelectorAll('.bowling-card, .guest-card').forEach(c => c.classList.remove('active')); 
     }
 
-    // 🔥 FIX: Prevent Spam Clicking & Processing State
     document.getElementById('gameForm').addEventListener('submit', (e) => {
         const btn = document.getElementById('submitBtn');
         if (btn) {
@@ -342,7 +336,6 @@
         }
     });
 
-    // Init
     if(document.querySelector('.bowling-card')) { updateBowlingEstimates(); } else { updateSplit(); }
 </script>
 </body>
