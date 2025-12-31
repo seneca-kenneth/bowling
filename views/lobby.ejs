@@ -1,82 +1,170 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>記錄</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>活動大廳</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <meta name="theme-color" content="#388697">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 🔥 FIX: Mobile Overscroll Color */
-        html { background-color: #388697; } 
-        body { background-color: #f8f9fa; min-height: 100vh; margin: 0; padding-top: 0; padding-bottom: 100px; }
+        :root {
+            --primary-color: #388697;
+            --bg-color: #F2F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1C1C1E;
+            --text-sub: #8E8E93;
+            --radius-lg: 20px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --header-height: 60px;
+        }
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            padding-top: calc(var(--header-height) + 20px); 
+            padding-bottom: 100px;
+            min-height: 100vh;
+            margin: 0;
+        }
 
-        .bg-primary { background-color: #388697 !important; }
-        .text-primary { color: #388697 !important; }
-        .btn-outline-primary { color: #388697; border-color: #388697; }
-        .btn-outline-primary:hover, .btn-primary { background-color: #388697; border-color: #388697; color: white; }
-        .hover-shadow:hover { transform: translateY(-3px); box-shadow: 0 .5rem 1rem rgba(0,0,0,.15)!important; transition: all .2s; }
-        .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
-        .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid #eee; }
-        .dropdown-item { padding: 10px 15px; font-size: 1rem; }
+        /* Header */
+        .top-nav {
+            position: fixed; top: 0; left: 0; right: 0;
+            height: var(--header-height);
+            background: var(--primary-color);
+            color: white;
+            display: flex; align-items: center; justify-content: center; /* Center title */
+            padding: 0 20px;
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(56, 134, 151, 0.2);
+            padding-top: env(safe-area-inset-top); 
+            height: calc(var(--header-height) + env(safe-area-inset-top));
+        }
+        .top-nav-title { font-weight: 700; font-size: 18px; }
+
+        /* Modern Activity Card */
+        .activity-card {
+            background: var(--card-bg);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-sm);
+            padding: 20px;
+            margin-bottom: 16px;
+            border: none;
+            transition: transform 0.2s ease, box-shadow 0.2s ease;
+            display: block;
+            text-decoration: none;
+            color: var(--text-main);
+            position: relative;
+            overflow: hidden;
+        }
+        .activity-card:active { transform: scale(0.98); background-color: #F8FDFF; }
+
+        .act-icon {
+            width: 40px; height: 40px;
+            background: rgba(56, 134, 151, 0.1);
+            color: var(--primary-color);
+            border-radius: 12px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.2rem;
+            margin-right: 15px;
+        }
+        .act-arrow { color: #E5E5EA; font-size: 1.2rem; }
+
+        /* Action Button */
+        .action-btn-container { position: fixed; bottom: 30px; left: 20px; right: 20px; z-index: 900; }
+        .action-btn {
+            width: 100%; border-radius: 16px; font-size: 1.1rem; font-weight: 700; padding: 14px;
+            box-shadow: 0 8px 20px rgba(56, 134, 151, 0.4); border: none; background: var(--primary-color); color: white;
+            display: flex; align-items: center; justify-content: center;
+        }
+        
+        /* Modal styling tweaks */
+        .modal-content { border-radius: var(--radius-lg); border: none; }
+        .modal-header { border-bottom: 1px solid #F2F4F6; }
+        .modal-footer { border-top: 1px solid #F2F4F6; }
+        .form-control { background-color: #F2F4F6; border: none; padding: 12px; border-radius: 12px; }
+        .form-select { background-color: #F2F4F6; border: none; padding: 12px; border-radius: 12px; }
+
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-dark bg-primary mb-4 sticky-top">
-    <div class="container-fluid position-relative">
-        <div class="d-flex align-items-center"><span class="navbar-brand mb-0 h1 fs-4">📂</span></div>
-        <div class="position-absolute top-50 start-50 translate-middle w-50 text-center"><span class="text-white fs-5 fw-bold text-truncate d-block" data-i18n="header_title">記錄</span></div>
-        <div class="d-flex align-items-center"><div class="dropdown"><button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button><ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 160px;"><li><button class="dropdown-item" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button></li></ul></div></div>
-    </div>
-</nav>
+<div class="top-nav">
+    <div class="top-nav-title">活動大廳</div>
+</div>
 
 <div class="container">
-    <div class="row g-3 justify-content-center">
-        <% if (activities.length === 0) { %>
-            <div class="col-12 text-center text-muted" data-i18n="no_activity">暫時未有活動，請在下方建立一個！</div>
-        <% } %>
+    <% if (activities.length === 0) { %>
+        <div class="text-center py-5 text-muted" style="margin-top: 100px;">
+            <i class="fa-solid fa-clipboard-list fa-3x mb-3" style="color: #E5E5EA;"></i>
+            <p class="fw-bold">暫時沒有活動</p>
+            <p class="small">點擊下方按鈕建立第一個活動</p>
+        </div>
+    <% } else { %>
+        <div class="mb-3 small text-muted fw-bold">最近活動</div>
         <% activities.forEach(act => { %>
-            <div class="col-12 col-md-6 col-lg-4">
-                <a href="/activity/<%= act.id %>" class="text-decoration-none">
-                    <div class="card shadow-sm hover-shadow h-100">
-                        <div class="card-body text-center">
-                            <h3 class="card-title text-primary"><%= act.name %></h3>
-                            <p class="badge bg-secondary"><% if(act.type === 'split') { %><span data-i18n="mode_split">夾錢模式</span><% } else { %><span data-i18n="mode_bowling">計局模式</span><% } %></p>
+            <a href="/activity/<%= act.id %>" class="activity-card">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div class="d-flex align-items-center">
+                        <div class="act-icon">
+                            <% if (act.type === 'bowling') { %>
+                                <i class="fa-solid fa-bowling-ball"></i>
+                            <% } else { %>
+                                <i class="fa-solid fa-table-tennis-paddle-ball"></i>
+                            <% } %>
+                        </div>
+                        <div>
+                            <h5 class="fw-bold mb-1" style="color: var(--primary-color);"><%= act.name %></h5>
+                            <div class="text-muted small">
+                                <span class="me-2"><%= act.type === 'bowling' ? '保齡球' : 'Pickleball (夾錢)' %></span>
+                                ‧ <span class="ms-2"><%= new Date(act.created_at).toLocaleDateString() %></span>
+                            </div>
                         </div>
                     </div>
-                </a>
-            </div>
+                    <i class="fa-solid fa-chevron-right act-arrow"></i>
+                </div>
+            </a>
         <% }) %>
-    </div>
+    <% } %>
+</div>
 
-    <div class="collapse mt-4" id="createActivityBox">
-        <div class="card mx-auto shadow-sm border-primary" style="max-width: 500px;">
-            <div class="card-header bg-white text-primary fw-bold text-center" data-i18n="new_activity_title">新活動資料</div>
-            <div class="card-body">
-                <form action="/create-activity" method="POST">
-                    <div class="mb-3"><label class="form-label" data-i18n="label_name">活動名稱</label><input type="text" name="name" class="form-control" placeholder="Activity Name" required></div>
-                    <div class="mb-3"><label class="form-label" data-i18n="label_type">計費模式</label><select name="type" class="form-select" id="activityType"><option value="split" data-i18n="opt_split">Pickleball / 食飯</option><option value="bowling" selected data-i18n="opt_bowling">保齡球</option></select></div>
-                    <button class="btn btn-primary w-100 fw-bold" data-i18n="btn_create_submit">立即建立</button>
-                </form>
+<div class="action-btn-container">
+    <button class="action-btn" data-bs-toggle="modal" data-bs-target="#createModal">
+        <i class="fa-solid fa-plus me-2"></i> 建立新活動
+    </button>
+</div>
+
+<div class="modal fade" id="createModal" tabindex="-1">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold" style="color: var(--primary-color);">建立新活動</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
             </div>
+            <form action="/create-activity" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">活動名稱</label>
+                        <input type="text" name="name" class="form-control" placeholder="例如: 週末打波" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small text-muted">類型</label>
+                        <select name="type" class="form-select">
+                            <option value="bowling">🎳 保齡球 (按局數)</option>
+                            <option value="pickleball">🏓 Pickleball (夾場租)</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal" style="color: var(--text-sub);">取消</button>
+                    <button type="submit" class="btn btn-primary rounded-pill px-4" style="background: var(--primary-color); border: none;">建立</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
-<div class="sticky-footer">
-    <div class="container" style="max-width: 500px;">
-        <button class="btn btn-primary w-100 py-2 fw-bold shadow-sm fs-5" type="button" data-bs-toggle="collapse" data-bs-target="#createActivityBox" onclick="setTimeout(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }), 300)">➕ <span data-i18n="btn_create_new">建立新活動</span></button>
-    </div>
-</div>
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script>
-    const translations = { zh: { header_title: "記錄", no_activity: "暫時未有活動，請在下方建立一個！", mode_split: "夾錢模式", mode_bowling: "計局模式", btn_create_new: "建立新活動", new_activity_title: "新活動資料", label_name: "活動名稱", label_type: "計費模式", opt_split: "Pickleball / 食飯 (輸入總數 ÷ 人頭)", opt_bowling: "保齡球 (按局數計 x 單價)", btn_create_submit: "立即建立" }, en: { header_title: "Records", no_activity: "No activities yet. Create one below!", mode_split: "Split Mode", mode_bowling: "Game Mode", btn_create_new: "New Activity", new_activity_title: "Activity Info", label_name: "Activity Name", label_type: "Billing Type", opt_split: "Pickleball / Split Bill", opt_bowling: "Bowling", btn_create_submit: "Create Now" } };
-    let currentLang = localStorage.getItem('appLang') || 'zh';
-    function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); document.getElementById('langLabel').innerText = currentLang === 'zh' ? '中' : 'ENG'; }
-    function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
-    applyLanguage();
-</script>
 </body>
 </html>
