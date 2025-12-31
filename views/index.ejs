@@ -116,11 +116,9 @@
             <h6 class="fw-bold mb-3" style="color: var(--primary-color);">設定</h6>
             <form action="/activity/<%= activity.id %>/settings" method="POST">
                 <div class="mb-3"><label class="input-label mb-1">活動名稱</label><input type="text" name="name" class="form-control" value="<%= activity.name %>" style="background:#F2F4F6; border:none;" required></div>
-                
                 <% if (activity.type !== 'bowling') { %>
                     <div class="mb-3"><label class="input-label mb-1">預設每場收費 ($)</label><input type="number" step="0.1" name="defaultCost" class="form-control" value="<%= defaultCost %>" style="background:#F2F4F6; border:none;"></div>
                 <% } %>
-
                 <div class="mb-3"><label class="input-label mb-1">低餘額提醒 ($)</label><input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>" style="background:#F2F4F6; border:none;"></div>
                 <button class="btn btn-secondary w-100 rounded-pill btn-sm">保存設定</button>
             </form>
@@ -156,7 +154,7 @@
                     <div class="col-6 col-md-6">
                         <div class="modern-card bowling-card" id="card-<%= user.id %>" data-ispool="<%= user.is_pool_member %>">
                             <div class="d-flex justify-content-between align-items-start">
-                                <div style="font-weight: 700; font-size: 1rem;"><%= user.name %></div>
+                                <div style="font-weight: 700; font-size: 1rem; color: var(--primary-color);"><%= user.name %></div>
                                 <% if (user.is_pool_member) { %><div class="small fw-bold <%= user.balance < 0 ? 'text-neg' : 'text-pos' %>">$<%= user.balance.toFixed(2) %></div><% } else { %><span class="badge-cash">Cash</span><% } %>
                             </div>
                             <div class="stepper">
@@ -173,7 +171,7 @@
                 <% }) %>
                 <div class="col-6 col-md-6">
                     <div class="modern-card guest-card" id="card-guest">
-                        <div class="d-flex justify-content-between align-items-start"><div style="font-weight: 700; font-size: 1rem;">👥 訪客</div><span class="badge-cash">Cash</span></div>
+                        <div class="d-flex justify-content-between align-items-start"><div style="font-weight: 700; font-size: 1rem; color: var(--primary-color);">👥 訪客</div><span class="badge-cash">Cash</span></div>
                         <div class="stepper">
                             <button type="button" class="step-btn" onclick="stepInput('guest', -1)" disabled><i class="fa-solid fa-minus"></i></button>
                             <input type="number" pattern="[0-9]*" name="guestGames" id="input-guest" class="stepper-input game-input" placeholder="0" data-userid="guest" disabled readonly>
@@ -192,7 +190,7 @@
                             <input type="checkbox" name="selectedUsers" value="<%= user.id %>" id="check-<%= user.id %>" class="d-none user-checkbox" disabled>
                             <i class="fa-solid fa-circle-check card-check"></i>
                             <div class="d-flex justify-content-between align-items-start">
-                                <div style="font-weight: 700; font-size: 1rem;"><%= user.name %></div>
+                                <div style="font-weight: 700; font-size: 1rem; color: var(--primary-color);"><%= user.name %></div>
                                 <% if (user.is_pool_member) { %><div class="small fw-bold <%= user.balance < 0 ? 'text-neg' : 'text-pos' %>">$<%= user.balance.toFixed(2) %></div><% } else { %><span class="badge-cash">Cash</span><% } %>
                             </div>
                             <div class="stepper" onclick="event.stopPropagation()">
