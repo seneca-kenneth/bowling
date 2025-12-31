@@ -116,7 +116,11 @@
             <h6 class="fw-bold mb-3" style="color: var(--primary-color);">設定</h6>
             <form action="/activity/<%= activity.id %>/settings" method="POST">
                 <div class="mb-3"><label class="input-label mb-1">活動名稱</label><input type="text" name="name" class="form-control" value="<%= activity.name %>" style="background:#F2F4F6; border:none;" required></div>
-                <div class="mb-3"><label class="input-label mb-1">預設每場收費 ($)</label><input type="number" step="0.1" name="defaultCost" class="form-control" value="<%= defaultCost %>" style="background:#F2F4F6; border:none;"></div>
+                
+                <% if (activity.type !== 'bowling') { %>
+                    <div class="mb-3"><label class="input-label mb-1">預設每場收費 ($)</label><input type="number" step="0.1" name="defaultCost" class="form-control" value="<%= defaultCost %>" style="background:#F2F4F6; border:none;"></div>
+                <% } %>
+
                 <div class="mb-3"><label class="input-label mb-1">低餘額提醒 ($)</label><input type="number" step="10" name="threshold" class="form-control" value="<%= alertThreshold %>" style="background:#F2F4F6; border:none;"></div>
                 <button class="btn btn-secondary w-100 rounded-pill btn-sm">保存設定</button>
             </form>
