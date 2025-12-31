@@ -19,7 +19,7 @@ async function query(text, params) {
     return await pool.query(text, params);
 }
 
-// 1. Reset DB
+// 1. Reset DB (🔥 UPDATE: Added default_cost)
 app.get('/reset-db', async (req, res) => {
     try {
         await query("DROP TABLE IF EXISTS transactions");
@@ -30,7 +30,7 @@ app.get('/reset-db', async (req, res) => {
             id SERIAL PRIMARY KEY, 
             name TEXT NOT NULL,
             type TEXT DEFAULT 'bowling',
-            cost_per_game NUMERIC DEFAULT 0,
+            default_cost NUMERIC DEFAULT 45.20,
             alert_threshold NUMERIC DEFAULT 0,
             created_at TIMESTAMP DEFAULT NOW()
         )`);
@@ -71,12 +71,13 @@ app.get('/', async (req, res) => {
     }
 });
 
-// 3. Create Activity
+// 3. Create Activity (🔥 UPDATE: Insert default_cost)
 app.post('/create-activity', async (req, res) => {
-    const { name, cost, type } = req.body;
+    const { name, type } = req.body;
     const activityType = type || 'bowling';
-    await query("INSERT INTO activities (name, cost_per_game, type, alert_threshold) VALUES ($1, $2, $3, 0)", 
-        [name, parseFloat(cost) || 0, activityType]);
+    // Default 45.20 for everyone initially
+    await query("INSERT INTO activities (name, type, default_cost, alert_threshold) VALUES ($1, $2, 45.20, 0)", 
+        [name, activityType]);
     res.redirect('/');
 });
 
@@ -88,7 +89,8 @@ app.get('/activity/:id', async (req, res) => {
         const activity = actRes.rows[0];
         if (!activity) return res.redirect('/');
 
-        const costPerGame = parseFloat(activity.cost_per_game);
+        // Pass default_cost to view
+        const defaultCost = parseFloat(activity.default_cost || 45.2);
         const alertThreshold = parseFloat(activity.alert_threshold);
         const keepOpen = req.query.open === 'true';
 
@@ -97,7 +99,7 @@ app.get('/activity/:id', async (req, res) => {
         
         const alertUsers = users.filter(u => u.is_pool_member && u.balance < alertThreshold);
 
-        res.render('index', { activity, users, costPerGame, alertThreshold, alertUsers, keepOpen });
+        res.render('index', { activity, users, defaultCost, alertThreshold, alertUsers, keepOpen });
     } catch (err) {
         console.error(err);
         res.status(500).send("Error loading activity");
@@ -123,7 +125,6 @@ app.post('/activity/:id/record', async (req, res) => {
 
         if (activity.type === 'bowling') {
             if (!games && !guestGames) return res.redirect(`/activity/${activityId}`);
-            
             let totalGamesPlayed = 0;
             let userGameMap = {};
 
@@ -137,7 +138,6 @@ app.post('/activity/:id/record', async (req, res) => {
                     }
                 }
             }
-
             if (guestGames) {
                 const count = parseInt(guestGames) || 0;
                 if (count > 0) totalGamesPlayed += count;
@@ -168,6 +168,7 @@ app.post('/activity/:id/record', async (req, res) => {
             }
 
         } else {
+            // Pickleball Mode
             let userIds = [];
             if (Array.isArray(selectedUsers)) userIds = selectedUsers;
             else if (selectedUsers) userIds = [selectedUsers];
@@ -246,101 +247,62 @@ app.post('/activity/:id/add-user', async (req, res) => {
     res.redirect(`/activity/${activityId}/users`);
 });
 
-// 8. Settings
+// 8. Settings (🔥 UPDATE: Save default_cost)
 app.post('/activity/:id/settings', async (req, res) => {
     const activityId = req.params.id;
-    const { name, cost, threshold } = req.body;
+    const { name, defaultCost, threshold } = req.body;
+    
     const newThreshold = isNaN(parseFloat(threshold)) ? 0 : parseFloat(threshold);
-    await query("UPDATE activities SET name = $1, cost_per_game = $2, alert_threshold = $3 WHERE id = $4", 
-        [name, parseFloat(cost)||0, newThreshold, activityId]);
+    const newDefaultCost = isNaN(parseFloat(defaultCost)) ? 45.20 : parseFloat(defaultCost);
+
+    await query("UPDATE activities SET name = $1, default_cost = $2, alert_threshold = $3 WHERE id = $4", 
+        [name, newDefaultCost, newThreshold, activityId]);
     res.redirect(`/activity/${activityId}?open=true`);
 });
 
-// 9. History Page (🔥 UPDATE: Total includes Cash Logic)
+// 9. History Page
 app.get('/activity/:id/history', async (req, res) => {
     const activityId = req.params.id;
     try {
-        const sql = `
-            SELECT t.id, t.amount, t.description, t.date, t.type, t.user_id, u.name 
-            FROM transactions t 
-            JOIN users u ON t.user_id = u.id 
-            WHERE t.activity_id = $1
-            ORDER BY t.date DESC`;
+        const sql = `SELECT t.id, t.amount, t.description, t.date, t.type, t.user_id, u.name FROM transactions t JOIN users u ON t.user_id = u.id WHERE t.activity_id = $1 ORDER BY t.date DESC`;
         const transRes = await query(sql, [activityId]);
         const actRes = await query("SELECT * FROM activities WHERE id = $1", [activityId]);
         const usersRes = await query("SELECT * FROM users WHERE activity_id = $1 ORDER BY name ASC", [activityId]);
         
         const groups = {};
-        
         transRes.rows.forEach(t => {
             const dateKey = new Date(t.date).toISOString(); 
             if (!groups[dateKey]) {
                 groups[dateKey] = {
-                    date: t.date,
-                    timestamp: dateKey,
-                    total: 0,
-                    explicitTotal: 0, // 🔥 Store the "共$XXX" if found
-                    calculatedSum: 0, // 🔥 Sum of (Pool Deduction + Cash Payment)
-                    type: t.type, 
-                    records: [],
-                    isBowling: t.description.includes('打波'),
-                    isPickle: t.description.includes('夾場租')
+                    date: t.date, timestamp: dateKey, total: 0, explicitTotal: 0, calculatedSum: 0,
+                    type: t.type, records: [], isBowling: t.description.includes('打波'), isPickle: t.description.includes('夾場租')
                 };
             }
-            
             const group = groups[dateKey];
-
-            // 1. Calculate Standard Sum (Pool Only)
             if (t.type === 'expense') {
                 const amount = Math.abs(parseFloat(t.amount));
-                group.calculatedSum += amount; // Add pool share
-                
-                // 2. Check for Cash Amount "(Cash: $17.28)"
+                group.calculatedSum += amount; 
                 const cashMatch = t.description.match(/\(Cash: \$(\d+(\.\d+)?)\)/);
-                if (cashMatch) {
-                    group.calculatedSum += parseFloat(cashMatch[1]); // Add cash share
-                }
-
-                // 3. Check for Explicit Total "(共$103.70)" - Only Pool Members have this
+                if (cashMatch) group.calculatedSum += parseFloat(cashMatch[1]);
                 const totalMatch = t.description.match(/\(共\$(\d+(\.\d+)?)\)/);
-                if (totalMatch) {
-                    group.explicitTotal = parseFloat(totalMatch[1]);
-                }
-
+                if (totalMatch) group.explicitTotal = parseFloat(totalMatch[1]);
             } else if (t.type === 'deposit') {
-                group.total += parseFloat(t.amount); // Deposits are simple
+                group.total += parseFloat(t.amount);
             }
-
             group.records.push({ ...t, amount: parseFloat(t.amount) });
         });
 
-        // 🔥 Final Decision on Group Total
         Object.values(groups).forEach(group => {
             if (group.type === 'expense') {
-                // If we found an explicit "Total Bill" string, use it (Most Accurate)
-                if (group.explicitTotal > 0) {
-                    group.total = group.explicitTotal;
-                } else {
-                    // Otherwise (e.g. All Cash), use the sum we calculated
-                    group.total = group.calculatedSum;
-                }
+                group.total = group.explicitTotal > 0 ? group.explicitTotal : group.calculatedSum;
             }
         });
 
         const groupArray = Object.values(groups).sort((a, b) => b.date - a.date);
-
-        res.render('history', { 
-            groupedTransactions: groupArray,
-            activity: actRes.rows[0],
-            users: usersRes.rows 
-        });
-    } catch (err) {
-        console.error(err);
-        res.send("Error");
-    }
+        res.render('history', { groupedTransactions: groupArray, activity: actRes.rows[0], users: usersRes.rows });
+    } catch (err) { console.error(err); res.send("Error"); }
 });
 
-// 10. Users Page
 app.get('/activity/:id/users', async (req, res) => {
     const activityId = req.params.id;
     try {
@@ -351,7 +313,6 @@ app.get('/activity/:id/users', async (req, res) => {
     } catch (err) { console.error(err); res.send("Error"); }
 });
 
-// 11. Share Page
 app.get('/activity/:id/share', async (req, res) => {
     const activityId = req.params.id;
     try {
@@ -365,12 +326,7 @@ app.get('/activity/:id/share', async (req, res) => {
     } catch (err) { console.error(err); res.send("Error"); }
 });
 
-// 12. Update Group Total
-app.post('/activity/:id/update-group-total', async (req, res) => {
-    const activityId = req.params.id;
-    res.redirect(`/activity/${activityId}/history`);
-});
-
+app.post('/activity/:id/update-group-total', async (req, res) => { res.redirect(`/activity/${req.params.id}/history`); });
 app.get('/activity/:id/session/:timestamp/details', async (req, res) => {
     const { id, timestamp } = req.params;
     try {
@@ -387,16 +343,9 @@ app.get('/activity/:id/session/:timestamp/details', async (req, res) => {
         res.json({ totalCost, guestGames, userGames });
     } catch (err) { console.error(err); res.json({ error: true }); }
 });
-
-app.post('/activity/:id/update-bowling-session', async (req, res) => {
-    const activityId = req.params.id;
-    res.redirect(`/activity/${activityId}/history`);
-});
-
-// 13. Soft Delete
+app.post('/activity/:id/update-bowling-session', async (req, res) => { res.redirect(`/activity/${req.params.id}/history`); });
 app.post('/activity/:id/delete-transaction', async (req, res) => {
-    const activityId = req.params.id;
-    const { id } = req.body;
+    const activityId = req.params.id; const { id } = req.body;
     try {
         const transRes = await query("SELECT * FROM transactions WHERE id = $1", [id]);
         const targetTrans = transRes.rows[0];
@@ -408,16 +357,14 @@ app.post('/activity/:id/delete-transaction', async (req, res) => {
         res.redirect(`/activity/${activityId}/history`);
     } catch (err) { console.error(err); res.redirect(`/activity/${activityId}/history`); }
 });
-
 app.post('/activity/:id/edit-user', async (req, res) => { await query("UPDATE users SET name = $1 WHERE id = $2", [req.body.name, req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
 app.post('/activity/:id/delete-user', async (req, res) => { await query("DELETE FROM users WHERE id = $1", [req.body.id]); res.redirect(`/activity/${req.params.id}/users`); });
 
-// 🚑 Emergency DB Fix (Optional, but good to have)
+// 🔥 10. Emergency Fix for New Column
 app.get('/fix-db', async (req, res) => {
     try {
-        await query("ALTER TABLE users ADD COLUMN IF NOT EXISTS is_pool_member BOOLEAN DEFAULT FALSE");
-        await query("UPDATE users SET is_pool_member = TRUE WHERE balance != 0");
-        res.send("✅ 資料庫已修復！");
+        await query("ALTER TABLE activities ADD COLUMN IF NOT EXISTS default_cost NUMERIC DEFAULT 45.20");
+        res.send("✅ 資料庫已修復 (Added default_cost)！");
     } catch (err) { res.send("修復失敗: " + err.message); }
 });
 

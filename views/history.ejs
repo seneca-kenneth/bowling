@@ -5,92 +5,142 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <meta name="theme-color" content="#388697">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 🔥 FIX: Mobile Overscroll Color */
-        html { background-color: #388697; } 
-        body { background-color: #f8f9fa; min-height: 100vh; margin: 0; padding-top: 0; }
+        :root {
+            --primary-color: #388697;
+            --bg-color: #F2F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1C1C1E;
+            --danger-color: #FF3B30;
+            --success-color: #34C759;
+            --radius-lg: 20px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --header-height: 60px;
+        }
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            padding-top: calc(var(--header-height) + 20px); padding-bottom: 100px;
+            min-height: 100vh; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        /* Header */
+        .top-nav {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--header-height);
+            background: var(--primary-color); color: white;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+            z-index: 1000; padding-top: env(safe-area-inset-top); height: calc(var(--header-height) + env(safe-area-inset-top));
+            box-shadow: 0 4px 12px rgba(56, 134, 151, 0.2);
+        }
+        .top-nav-title { font-weight: 700; font-size: 18px; }
+        .nav-btn { color: white; font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;}
 
-        .bg-primary { background-color: #388697 !important; }
-        .text-primary { color: #388697 !important; }
-        .btn-outline-primary { color: #388697; border-color: #388697; }
-        .btn-outline-primary:hover, .btn-primary { background-color: #388697; border-color: #388697; color: white; }
-        .amount-pos { color: green; font-weight: bold; }
-        .amount-neg { color: red; font-weight: bold; }
-        .table-text-small { font-size: 0.9rem; }
-        .dropdown-item { padding: 10px 15px; font-size: 1rem; }
-        .void-row { text-decoration: line-through; color: #adb5bd; }
-        .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
+        /* Card */
+        .modern-card { background: var(--card-bg); border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: 0; margin-bottom: 16px; overflow: hidden; border: none; }
+        .card-header-modern { padding: 16px; border-bottom: 1px solid #F2F4F6; display: flex; justify-content: space-between; align-items: center; }
+        .amount-pos { color: var(--success-color); font-weight: bold; }
+        .amount-neg { color: var(--danger-color); font-weight: bold; }
+        .void-row { text-decoration: line-through; opacity: 0.5; }
+        
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #FFFFFF;
+            border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-around; align-items: flex-start;
+            padding-top: 12px; z-index: 1000; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #C7C7CC; font-size: 0.75rem; font-weight: 500; width: 60px; }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 4px; }
+        .nav-item.active { color: var(--primary-color); }
         ::-webkit-scrollbar { display: none; }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-dark bg-primary mb-3 sticky-top">
-    <div class="container-fluid position-relative">
-        <div class="d-flex align-items-center"><a class="navbar-brand p-0 m-0" href="/activity/<%= activity.id %>"><span class="fs-4">⬅️</span></a></div>
-        <div class="position-absolute top-50 start-50 translate-middle w-50 text-center"><div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div></div>
-        <div class="d-flex align-items-center gap-2">
-            <div class="dropdown">
-                <button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button>
-                <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;">
-                    <li><a class="dropdown-item" href="/activity/<%= activity.id %>">🏠 <span data-i18n="menu_return">返回記數</span></a></li>
-                    <li><a class="dropdown-item" href="/activity/<%= activity.id %>/users">👥 <span data-i18n="menu_members">會員管理</span></a></li>
-                    <li><hr class="dropdown-divider"></li>
-                    <li><button class="dropdown-item" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button></li>
-                </ul>
-            </div>
-        </div>
-    </div>
-</nav>
+<div class="top-nav">
+    <a href="/activity/<%= activity.id %>" class="nav-btn"><i class="fa-solid fa-chevron-left"></i></a>
+    <div class="top-nav-title">歷史紀錄</div>
+    <div style="width: 40px;"></div> </div>
 
 <div class="container">
-    <h4 class="mb-3">📜 <span data-i18n="title_history">歷史紀錄</span></h4>
     <% if (groupedTransactions.length === 0) { %>
-        <div class="alert alert-info text-center" data-i18n="no_records">暫時未有任何交易紀錄。</div>
+        <div class="text-center text-muted py-5">暫時未有紀錄</div>
     <% } else { %>
         <% groupedTransactions.forEach(group => { %>
-            <div class="card shadow-sm mb-3">
-                <div class="card-header d-flex justify-content-between align-items-center bg-white">
+            <div class="modern-card">
+                <div class="card-header-modern">
                     <div>
-                        <div class="fw-bold text-primary"><%= group.date.toISOString().substring(0, 10) %> <% if(group.isBowling) { %> 🎳 Bowling <% } %><% if(group.isPickle) { %> 🥒 Pickleball <% } %><% if(group.type === 'deposit') { %> 💰 Deposit <% } %></div>
+                        <div style="font-weight: 700; color: var(--primary-color);">
+                            <%= group.date.toISOString().substring(0, 10) %> 
+                            <% if(group.isBowling) { %> 🎳 <% } %>
+                            <% if(group.type === 'deposit') { %> 💰 Deposit <% } %>
+                        </div>
                         <div class="small text-muted"><%= group.date.toISOString().substring(11, 16) %></div>
                     </div>
                     <div class="d-flex align-items-center gap-2">
                         <span class="fs-5 fw-bold text-dark">$<%= group.total.toFixed(2) %></span>
-                        <% if(group.type === 'expense') { %><button class="btn btn-sm btn-outline-secondary py-0 px-2" onclick="handleEdit('<%= group.timestamp %>', '<%= group.total %>', <%= group.isBowling %>)">✏️</button><% } %>
+                        <% if(group.type === 'expense') { %>
+                            <button class="btn btn-sm btn-light rounded-circle" onclick="handleEdit('<%= group.timestamp %>', '<%= group.total %>', <%= group.isBowling %>)"><i class="fa-solid fa-pen"></i></button>
+                        <% } %>
                     </div>
                 </div>
-                <div class="card-body p-0">
-                    <table class="table table-striped mb-0 align-middle">
-                        <tbody>
-                            <% group.records.forEach(t => { %>
-                                <tr class="<%= t.type === 'void' ? 'void-row' : '' %>">
-                                    <td class="ps-3 table-text-small"><div class="fw-bold"><%= t.name || 'Unknown' %></div><div class="text-muted small"><%= t.description %></div></td>
-                                    <td class="text-end pe-3 table-text-small">
-                                        <% if(t.type === 'void') { %> $0.00 <% } else { %> <span class="<%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>"><%= t.amount.toFixed(2) %></span> <% } %>
-                                        <% if(t.type !== 'void') { %> <form action="/activity/<%= activity.id %>/delete-transaction" method="POST" class="d-inline ms-2"><input type="hidden" name="id" value="<%= t.id %>"><button class="btn btn-sm btn-link text-danger p-0" style="text-decoration: none;">🗑️</button></form> <% } %>
-                                    </td>
-                                </tr>
-                            <% }) %>
-                        </tbody>
-                    </table>
-                </div>
+                <table class="table mb-0 align-middle">
+                    <tbody>
+                        <% group.records.forEach(t => { %>
+                            <tr class="<%= t.type === 'void' ? 'void-row' : '' %>">
+                                <td class="ps-3 border-0">
+                                    <div class="fw-bold"><%= t.name || 'Unknown' %></div>
+                                    <div class="text-muted small"><%= t.description %></div>
+                                </td>
+                                <td class="text-end pe-3 border-0">
+                                    <% if(t.type !== 'void') { %>
+                                        <span class="<%= t.amount >= 0 ? 'amount-pos' : 'amount-neg' %>"><%= t.amount.toFixed(2) %></span>
+                                        <form action="/activity/<%= activity.id %>/delete-transaction" method="POST" class="d-inline ms-2">
+                                            <input type="hidden" name="id" value="<%= t.id %>">
+                                            <button class="btn btn-sm btn-link text-danger p-0"><i class="fa-regular fa-trash-can"></i></button>
+                                        </form>
+                                    <% } else { %>
+                                        $0.00
+                                    <% } %>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    </tbody>
+                </table>
             </div>
         <% }) %>
     <% } %>
-    <div class="modal fade" id="editGroupModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">修改總金額 (Pickleball)</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/update-group-total" method="POST"><div class="modal-body"><input type="hidden" name="timestamp" id="editGroupTimestamp"><label class="form-label">新總金額 ($)</label><input type="number" step="0.01" name="newTotal" id="editGroupTotal" class="form-control" required></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="submit" class="btn btn-primary">保存</button></div></form></div></div></div>
-    <div class="modal fade" id="editBowlingModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">修改 Bowling 紀錄</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/update-bowling-session" method="POST"><div class="modal-body"><input type="hidden" name="timestamp" id="bowlingTimestamp"><div class="mb-3"><label class="form-label fw-bold">總金額 ($)</label><input type="number" step="0.01" name="totalCost" id="bowlingTotalCost" class="form-control" required></div><div class="mb-3"><label class="form-label fw-bold">Guest (獨立局數)</label><div class="input-group"><span class="input-group-text bg-secondary text-white">👥</span><input type="number" name="guestGames" id="bowlingGuestGames" class="form-control" placeholder="0"></div></div><label class="form-label fw-bold">會員局數 (Member)</label><div class="card card-body bg-light p-2" style="max-height: 250px; overflow-y: auto;"><% users.forEach(user => { %><div class="d-flex justify-content-between align-items-center mb-2"><label class="mb-0 text-truncate" style="width: 50%;"><%= user.name %></label><input type="number" name="userGames[<%= user.id %>]" id="user-game-<%= user.id %>" class="form-control form-control-sm w-50 text-center" placeholder="0"></div><% }) %></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="submit" class="btn btn-primary">保存重算</button></div></form></div></div></div>
+    
+    <div class="modal fade" id="editGroupModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">修改總金額</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/update-group-total" method="POST"><div class="modal-body"><input type="hidden" name="timestamp" id="editGroupTimestamp"><label class="form-label">新總金額 ($)</label><input type="number" step="0.01" name="newTotal" id="editGroupTotal" class="form-control" required></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="submit" class="btn btn-primary">保存</button></div></form></div></div></div>
+    <div class="modal fade" id="editBowlingModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">修改紀錄</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/update-bowling-session" method="POST"><div class="modal-body"><input type="hidden" name="timestamp" id="bowlingTimestamp"><div class="mb-3"><label class="form-label fw-bold">總金額 ($)</label><input type="number" step="0.01" name="totalCost" id="bowlingTotalCost" class="form-control" required></div><div class="mb-3"><label class="form-label fw-bold">Guest (獨立局數)</label><input type="number" name="guestGames" id="bowlingGuestGames" class="form-control" placeholder="0"></div><label class="form-label fw-bold">會員局數</label><div class="card card-body bg-light p-2" style="max-height: 250px; overflow-y: auto;"><% users.forEach(user => { %><div class="d-flex justify-content-between align-items-center mb-2"><label class="mb-0 text-truncate" style="width: 50%;"><%= user.name %></label><input type="number" name="userGames[<%= user.id %>]" id="user-game-<%= user.id %>" class="form-control form-control-sm w-50 text-center" placeholder="0"></div><% }) %></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button><button type="submit" class="btn btn-primary">保存重算</button></div></form></div></div></div>
+</div>
+
+<div class="bottom-nav">
+    <a href="/activity/<%= activity.id %>" class="nav-item"><i class="fa-solid fa-pen-to-square"></i><span>記數</span></a>
+    <a href="/activity/<%= activity.id %>/history" class="nav-item active"><i class="fa-solid fa-clock-rotate-left"></i><span>紀錄</span></a>
+    <a href="/activity/<%= activity.id %>/users" class="nav-item"><i class="fa-solid fa-users"></i><span>成員</span></a>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const translations = { zh: { title_history: "歷史紀錄", no_records: "暫時未有任何交易紀錄。", menu_return: "返回記數", menu_members: "會員管理" }, en: { title_history: "History", no_records: "No transaction records yet.", menu_return: "Back to Record", menu_members: "Members" } };
-    let currentLang = localStorage.getItem('appLang') || 'zh';
-    function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); }
-    function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
-    applyLanguage();
-    const editGroupModal = new bootstrap.Modal(document.getElementById('editGroupModal')), editBowlingModal = new bootstrap.Modal(document.getElementById('editBowlingModal'));
-    function handleEdit(timestamp, total, isBowling) { const formattedTotal = parseFloat(total).toFixed(2); if (isBowling) { document.getElementById('bowlingTimestamp').value = timestamp; document.getElementById('bowlingTotalCost').value = formattedTotal; document.getElementById('bowlingGuestGames').value = ''; document.querySelectorAll('[id^="user-game-"]').forEach(el => el.value = ''); fetch(`/activity/<%= activity.id %>/session/${timestamp}/details`).then(res => res.json()).then(data => { if (data.guestGames) document.getElementById('bowlingGuestGames').value = data.guestGames; if (data.userGames) { for (const [uid, count] of Object.entries(data.userGames)) { const input = document.getElementById('user-game-' + uid); if (input) input.value = count; } } editBowlingModal.show(); }); } else { document.getElementById('editGroupTimestamp').value = timestamp; document.getElementById('editGroupTotal').value = formattedTotal; editGroupModal.show(); } }
+    const editGroupModal = new bootstrap.Modal(document.getElementById('editGroupModal'));
+    const editBowlingModal = new bootstrap.Modal(document.getElementById('editBowlingModal'));
+    function handleEdit(timestamp, total, isBowling) {
+        const formattedTotal = parseFloat(total).toFixed(2);
+        if (isBowling) {
+            document.getElementById('bowlingTimestamp').value = timestamp;
+            document.getElementById('bowlingTotalCost').value = formattedTotal;
+            document.getElementById('bowlingGuestGames').value = '';
+            document.querySelectorAll('[id^="user-game-"]').forEach(el => el.value = '');
+            fetch(`/activity/<%= activity.id %>/session/${timestamp}/details`).then(res => res.json()).then(data => {
+                if (data.guestGames) document.getElementById('bowlingGuestGames').value = data.guestGames;
+                if (data.userGames) { for (const [uid, count] of Object.entries(data.userGames)) { const input = document.getElementById('user-game-' + uid); if (input) input.value = count; } }
+                editBowlingModal.show();
+            });
+        } else {
+            document.getElementById('editGroupTimestamp').value = timestamp;
+            document.getElementById('editGroupTotal').value = formattedTotal;
+            editGroupModal.show();
+        }
+    }
 </script>
 </body>
 </html>

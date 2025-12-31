@@ -5,105 +5,108 @@
     <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=0">
     <meta name="theme-color" content="#388697">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
-        /* 🔥 FIX: Mobile Overscroll Color */
-        html { background-color: #388697; } 
-        body { background-color: #f8f9fa; min-height: 100vh; margin: 0; padding-top: 0; padding-bottom: 100px; }
+        :root {
+            --primary-color: #388697;
+            --bg-color: #F2F4F6;
+            --card-bg: #FFFFFF;
+            --text-main: #1C1C1E;
+            --danger-color: #FF3B30;
+            --success-color: #34C759;
+            --radius-lg: 20px;
+            --shadow-sm: 0 2px 8px rgba(0,0,0,0.04);
+            --header-height: 60px;
+        }
+        body {
+            background-color: var(--bg-color); color: var(--text-main);
+            padding-top: calc(var(--header-height) + 20px); padding-bottom: 100px;
+            min-height: 100vh; margin: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+        /* Header */
+        .top-nav {
+            position: fixed; top: 0; left: 0; right: 0; height: var(--header-height);
+            background: var(--primary-color); color: white;
+            display: flex; align-items: center; justify-content: space-between; padding: 0 20px;
+            z-index: 1000; padding-top: env(safe-area-inset-top); height: calc(var(--header-height) + env(safe-area-inset-top));
+            box-shadow: 0 4px 12px rgba(56, 134, 151, 0.2);
+        }
+        .top-nav-title { font-weight: 700; font-size: 18px; }
+        .nav-btn { color: white; font-size: 1.2rem; text-decoration: none; display: flex; align-items: center; justify-content: center; width: 40px; height: 40px;}
 
-        .bg-primary { background-color: #388697 !important; }
-        .text-primary { color: #388697 !important; }
-        .btn-outline-primary { color: #388697; border-color: #388697; }
-        .btn-outline-primary:hover, .btn-primary { background-color: #388697; border-color: #388697; color: white; }
-        .btn-outline-success { color: #198754; border-color: #198754; }
-        .btn-outline-success:hover { background-color: #198754; color: white; }
-        .navbar { margin-top: 0 !important; padding-top: 10px; padding-bottom: 10px; min-height: 60px; }
-        .sticky-footer { position: fixed; bottom: 0; left: 0; right: 0; background: white; padding: 15px; box-shadow: 0 -2px 10px rgba(0,0,0,0.1); z-index: 1000; border-top: 1px solid #eee; }
-        .dropdown-item { padding: 10px 15px; font-size: 1rem; }
-        ::-webkit-scrollbar { display: none; }
+        /* Modern List */
+        .modern-list { background: var(--card-bg); border-radius: var(--radius-lg); overflow: hidden; box-shadow: var(--shadow-sm); }
+        .list-item { padding: 16px; border-bottom: 1px solid #F2F4F6; display: flex; justify-content: space-between; align-items: center; }
+        .list-item:last-child { border-bottom: none; }
+        
+        /* Bottom Nav */
+        .bottom-nav {
+            position: fixed; bottom: 0; left: 0; right: 0; height: 80px; background: #FFFFFF;
+            border-top: 1px solid rgba(0,0,0,0.05); display: flex; justify-content: space-around; align-items: flex-start;
+            padding-top: 12px; z-index: 1000; padding-bottom: env(safe-area-inset-bottom);
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; text-decoration: none; color: #C7C7CC; font-size: 0.75rem; font-weight: 500; width: 60px; }
+        .nav-item i { font-size: 1.4rem; margin-bottom: 4px; }
+        .nav-item.active { color: var(--primary-color); }
+        
+        .action-btn-container { position: fixed; bottom: 90px; left: 20px; right: 20px; z-index: 900; }
+        .action-btn { width: 100%; border-radius: 16px; font-size: 1.1rem; font-weight: 700; padding: 14px; box-shadow: 0 8px 20px rgba(56, 134, 151, 0.3); border: none; background: var(--primary-color); color: white; }
     </style>
 </head>
-<body class="bg-light">
+<body>
 
-<nav class="navbar navbar-dark bg-primary mb-3">
-    <div class="container-fluid position-relative">
-        <div class="d-flex align-items-center"><a class="navbar-brand p-0 m-0" href="/activity/<%= activity.id %>"><span class="fs-4">⬅️</span></a></div>
-        <div class="position-absolute top-50 start-50 translate-middle w-50 text-center"><div class="text-white fw-bold fs-5 text-truncate"><%= activity.name %></div></div>
-        <div class="d-flex align-items-center"><div class="dropdown"><button class="btn btn-link text-white text-decoration-none p-0 fs-3" type="button" data-bs-toggle="dropdown">⚙️</button><ul class="dropdown-menu dropdown-menu-end shadow-lg border-0" style="min-width: 200px;"><li><a class="dropdown-item" href="/activity/<%= activity.id %>">🏠 <span data-i18n="menu_return">返回記數</span></a></li><li><a class="dropdown-item" href="/activity/<%= activity.id %>/history">📜 <span data-i18n="menu_history">歷史紀錄</span></a></li><li><hr class="dropdown-divider"></li><li><button class="dropdown-item" onclick="toggleLanguage()">🌐 <span id="langLabel">ENG</span></button></li></ul></div></div>
-    </div>
-</nav>
+<div class="top-nav">
+    <a href="/activity/<%= activity.id %>" class="nav-btn"><i class="fa-solid fa-chevron-left"></i></a>
+    <div class="top-nav-title">會員管理</div>
+    <div style="width: 40px;"></div>
+</div>
 
 <div class="container">
-    <h4 class="mb-3">👥 <span data-i18n="title">會員管理</span></h4>
-    <div class="card shadow-sm">
-        <div class="card-body p-0">
-            <table class="table table-striped mb-0 align-middle">
-                <thead class="table-dark"><tr><th data-i18n="th_name">姓名</th><th data-i18n="th_balance">目前餘額</th><th class="text-end" data-i18n="th_action">操作</th></tr></thead>
-                <tbody>
-                    <% users.forEach(user => { %>
-                        <tr>
-                            <td class="fw-bold"><%= user.name %></td>
-                            <td>
-                                <% if(user.is_pool_member) { %>
-                                    <span class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %>">$<%= user.balance.toFixed(2) %></span>
-                                <% } else { %>
-                                    <span class="badge bg-secondary" style="font-weight: normal;">Cash</span>
-                                <% } %>
-                            </td>
-                            <td class="text-end">
-                                <button class="btn btn-sm btn-outline-success btn-deposit" data-id="<%= user.id %>" data-name="<%= user.name %>">💰</button>
-                                <button class="btn btn-sm btn-outline-primary btn-edit-user" data-id="<%= user.id %>" data-name="<%= user.name %>">✏️</button>
-                                <button class="btn btn-sm btn-outline-danger btn-delete-user" data-id="<%= user.id %>" data-name="<%= user.name %>">🗑️</button>
-                            </td>
-                        </tr>
-                    <% }) %>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    <div class="mt-3 text-muted small"><span data-i18n="hint_text">提示：刪除會員不會刪除其歷史交易紀錄，但歷史紀錄將不再顯示該會員名稱。</span></div>
-</div>
-
-<div class="sticky-footer">
-    <div class="container" style="max-width: 500px;">
-        <button class="btn btn-primary w-100 py-2 fw-bold shadow-sm fs-5" type="button" data-bs-toggle="modal" data-bs-target="#addUserModal">➕ <span data-i18n="btn_add_member_footer">加新會員</span></button>
+    <div class="modern-list">
+        <% users.forEach(user => { %>
+            <div class="list-item">
+                <div class="d-flex align-items-center gap-3">
+                    <div style="font-weight: 600;"><%= user.name %></div>
+                    <% if(user.is_pool_member) { %>
+                        <div class="<%= user.balance < 0 ? 'text-danger' : 'text-success' %> fw-bold">$<%= user.balance.toFixed(2) %></div>
+                    <% } else { %>
+                        <span class="badge bg-light text-secondary">Cash</span>
+                    <% } %>
+                </div>
+                <div class="d-flex gap-1">
+                    <button class="btn btn-sm btn-light text-success btn-deposit" data-id="<%= user.id %>" data-name="<%= user.name %>"><i class="fa-solid fa-money-bill-wave"></i></button>
+                    <button class="btn btn-sm btn-light text-primary btn-edit-user" data-id="<%= user.id %>" data-name="<%= user.name %>"><i class="fa-solid fa-pen"></i></button>
+                    <button class="btn btn-sm btn-light text-danger btn-delete-user" data-id="<%= user.id %>" data-name="<%= user.name %>"><i class="fa-solid fa-trash"></i></button>
+                </div>
+            </div>
+        <% }) %>
     </div>
 </div>
 
-<div class="modal fade" id="addUserModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title text-primary">➕ <span data-i18n="modal_add_title">加新會員</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/add-user" method="POST"><div class="modal-body"><div class="mb-3"><label class="form-label" data-i18n="label_name">會員名稱</label><input type="text" name="name" class="form-control" placeholder="Peter" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button><button type="submit" class="btn btn-primary" data-i18n="btn_confirm_add">加入</button></div></form></div></div></div>
-<div class="modal fade" id="depositModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title text-success">💰 <span data-i18n="modal_deposit_title">入錢</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/deposit" method="POST"><div class="modal-body"><input type="hidden" name="userId" id="depositUserId"><p><span data-i18n="deposit_for">入錢給：</span> <strong id="depositUserName" class="fs-5"></strong></p><div class="mb-3"><label class="form-label" data-i18n="label_amount">金額 $</label><input type="number" step="0.01" name="amount" id="depositAmount" class="form-control fw-bold fs-4" placeholder="100.00" value="100" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button><button type="submit" class="btn btn-success" data-i18n="btn_confirm">確定入數</button></div></form></div></div></div>
-<div class="modal fade" id="editUserModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">✏️ <span data-i18n="modal_edit_title">修改會員資料</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/edit-user" method="POST"><div class="modal-body"><input type="hidden" name="id" id="editUserId"><div class="mb-3"><label class="form-label" data-i18n="label_name">會員名稱</label><input type="text" name="name" id="editUserName" class="form-control" required></div></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button><button type="submit" class="btn btn-primary" data-i18n="btn_save">保存</button></div></form></div></div></div>
-<div class="modal fade" id="deleteUserModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title text-danger">⚠️ <span data-i18n="modal_delete_title">刪除會員</span></h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/delete-user" method="POST"><div class="modal-body"><input type="hidden" name="id" id="deleteUserId"><p><span data-i18n="confirm_delete_text">確定要刪除會員</span> <strong><span id="deleteUserName"></span></strong> <span data-i18n="question_mark">嗎？</span></p><p class="text-danger small fw-bold" data-i18n="warning_irreversible">此操作無法復原！</p></div><div class="modal-footer"><button type="button" class="btn btn-secondary" data-bs-dismiss="modal" data-i18n="btn_cancel">取消</button><button type="submit" class="btn btn-danger" data-i18n="btn_confirm_delete">確認刪除</button></div></form></div></div></div>
+<div class="action-btn-container">
+    <button class="action-btn" type="button" data-bs-toggle="modal" data-bs-target="#addUserModal">
+        <i class="fa-solid fa-plus me-1"></i> 加新會員
+    </button>
+</div>
+
+<div class="modal fade" id="addUserModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">加新會員</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/add-user" method="POST"><div class="modal-body"><input type="text" name="name" class="form-control" placeholder="Name" required></div><div class="modal-footer"><button type="submit" class="btn btn-primary w-100">加入</button></div></form></div></div></div>
+<div class="modal fade" id="depositModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title text-success">入錢</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/deposit" method="POST"><div class="modal-body"><input type="hidden" name="userId" id="depositUserId"><p>入錢給： <strong id="depositUserName"></strong></p><input type="number" step="0.01" name="amount" id="depositAmount" class="form-control fw-bold fs-4" placeholder="100.00" value="100" required></div><div class="modal-footer"><button type="submit" class="btn btn-success w-100">確定</button></div></form></div></div></div>
+<div class="modal fade" id="editUserModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title">改名</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/edit-user" method="POST"><div class="modal-body"><input type="hidden" name="id" id="editUserId"><input type="text" name="name" id="editUserName" class="form-control" required></div><div class="modal-footer"><button type="submit" class="btn btn-primary w-100">保存</button></div></form></div></div></div>
+<div class="modal fade" id="deleteUserModal" tabindex="-1"><div class="modal-dialog modal-dialog-centered"><div class="modal-content"><div class="modal-header"><h5 class="modal-title text-danger">刪除會員</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div><form action="/activity/<%= activity.id %>/delete-user" method="POST"><div class="modal-body"><input type="hidden" name="id" id="deleteUserId"><p>確定刪除 <strong id="deleteUserName"></strong>？</p></div><div class="modal-footer"><button type="submit" class="btn btn-danger w-100">刪除</button></div></form></div></div></div>
+
+<div class="bottom-nav">
+    <a href="/activity/<%= activity.id %>" class="nav-item"><i class="fa-solid fa-pen-to-square"></i><span>記數</span></a>
+    <a href="/activity/<%= activity.id %>/history" class="nav-item"><i class="fa-solid fa-clock-rotate-left"></i><span>紀錄</span></a>
+    <a href="/activity/<%= activity.id %>/users" class="nav-item active"><i class="fa-solid fa-users"></i><span>成員</span></a>
+</div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
-    const translations = { zh: { title: "會員管理", th_name: "姓名", th_balance: "目前餘額", th_action: "操作", btn_deposit: "入錢", btn_rename: "改名", btn_delete: "刪除", hint_text: "提示：刪除會員不會刪除其歷史交易紀錄。", modal_deposit_title: "入錢", deposit_for: "入錢給：", label_amount: "金額 $", btn_confirm: "確定入數", modal_edit_title: "修改會員資料", label_name: "會員名稱", btn_cancel: "取消", btn_save: "保存", modal_delete_title: "刪除會員", confirm_delete_text: "確定要刪除會員", question_mark: "嗎？", warning_irreversible: "此操作無法復原！", btn_confirm_delete: "確認刪除", btn_add_member_footer: "加新會員", modal_add_title: "加新會員", btn_confirm_add: "加入", menu_return: "返回記數", menu_history: "歷史紀錄" }, en: { title: "Members", th_name: "Name", th_balance: "Balance", th_action: "Action", btn_deposit: "Deposit", btn_rename: "Rename", btn_delete: "Delete", hint_text: "Note: Deleting a member will not remove history.", modal_deposit_title: "Deposit", deposit_for: "Deposit for:", label_amount: "Amount $", btn_confirm: "Confirm", modal_edit_title: "Edit Member", label_name: "Name", btn_cancel: "Cancel", btn_save: "Save", modal_delete_title: "Delete Member", confirm_delete_text: "Delete member", question_mark: "?", warning_irreversible: "Irreversible!", btn_confirm_delete: "Delete", btn_add_member_footer: "Add Member", modal_add_title: "Add Member", btn_confirm_add: "Add", menu_return: "Back", menu_history: "History" } };
-    let currentLang = localStorage.getItem('appLang') || 'zh';
-    function applyLanguage() { const langData = translations[currentLang]; document.querySelectorAll('[data-i18n]').forEach(el => { const key = el.getAttribute('data-i18n'); if (langData[key]) el.innerText = langData[key]; }); }
-    function toggleLanguage() { currentLang = currentLang === 'zh' ? 'en' : 'zh'; localStorage.setItem('appLang', currentLang); applyLanguage(); }
-    applyLanguage();
     var editUserModal = new bootstrap.Modal(document.getElementById('editUserModal')), deleteUserModal = new bootstrap.Modal(document.getElementById('deleteUserModal')), depositModal = new bootstrap.Modal(document.getElementById('depositModal'));
-    
-    document.querySelectorAll('.btn-deposit').forEach(b => b.addEventListener('click', function() { 
-        document.getElementById('depositUserId').value = this.dataset.id; 
-        document.getElementById('depositUserName').innerText = this.dataset.name; 
-        document.getElementById('depositAmount').value = '100'; 
-        depositModal.show(); 
-    }));
+    document.querySelectorAll('.btn-deposit').forEach(b => b.addEventListener('click', function() { document.getElementById('depositUserId').value = this.dataset.id; document.getElementById('depositUserName').innerText = this.dataset.name; document.getElementById('depositAmount').value = '100'; depositModal.show(); }));
     document.querySelectorAll('.btn-edit-user').forEach(b => b.addEventListener('click', function() { document.getElementById('editUserId').value = this.dataset.id; document.getElementById('editUserName').value = this.dataset.name; editUserModal.show(); }));
     document.querySelectorAll('.btn-delete-user').forEach(b => b.addEventListener('click', function() { document.getElementById('deleteUserId').value = this.dataset.id; document.getElementById('deleteUserName').innerText = this.dataset.name; deleteUserModal.show(); }));
-
-    // 🔥 FIX: Prevent Spam Clicking (Double Submission)
-    document.querySelectorAll('form').forEach(form => {
-        form.addEventListener('submit', (e) => {
-            const btn = form.querySelector('button[type="submit"]');
-            if (btn) {
-                // Disable button immediately to prevent second click
-                btn.disabled = true;
-                // Change text to indicate processing
-                btn.innerText = "處理中...";
-            }
-        });
-    });
+    document.querySelectorAll('form').forEach(form => { form.addEventListener('submit', (e) => { const btn = form.querySelector('button[type="submit"]'); if (btn) { btn.disabled = true; btn.innerText = "處理中..."; } }); });
 </script>
 </body>
 </html>
